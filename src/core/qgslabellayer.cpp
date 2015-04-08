@@ -22,6 +22,65 @@
 #include "qgsmaplayerregistry.h"
 #include "qgsgeometry.h"
 
+bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, QSet<QgsVectorLayer*> layers )
+{
+  bool hit = true;
+  if ( scale != mScale ) {
+    hit = false;
+  }
+  if ( hit && extent != mExtent ) {
+    hit = false;
+  }
+  // now compare layers
+  QSet<QString> layerIds;
+  if ( hit ) {
+    foreach( QgsVectorLayer* vl, layers ) {
+      layerIds << vl->id();
+    }
+    if ( layerIds != mLayers ) {
+      hit = false;
+    }
+    else {
+      hit = !mInvalidated;
+    }
+  }
+
+  // save parameters for the next call
+  mScale = scale;
+  mExtent = extent;
+
+  disconnectLayers();
+  mLayers = layerIds;
+  // connect new layers
+  foreach( QgsVectorLayer* vl, layers ) {
+    connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
+  }
+
+  return hit;
+}
+
+void QgsLabelLayerCacheTest::disconnectLayers()
+{
+  foreach( const QString& lid, mLayers ) {
+    QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(QgsMapLayerRegistry::instance()->mapLayer( lid ));
+    disconnect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
+  }
+}
+
+QgsLabelLayerCacheTest::~QgsLabelLayerCacheTest()
+{
+  disconnectLayers();
+}
+
+void QgsLabelLayerCacheTest::onRepaintLayer()
+{
+  QgsVectorLayer *vl = qobject_cast<QgsVectorLayer*>(sender());
+  if ( mLayers.contains(vl->id()) ) {
+    mInvalidated = true;
+  }
+}
+
+
 class QgsLabelLayerLegend : public QgsMapLayerLegend
 {
 public:
@@ -50,6 +109,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   QScopedPointer<QgsLabelingEngineInterface> pal( context.labelingEngine()->clone() );
 
   bool nothingToLabel = true;
+  QSet<QgsVectorLayer*> layersToTest;
   foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() ) {
     if ( ml->type() != QgsMapLayer::VectorLayer ) {
       continue;
@@ -62,6 +122,28 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
       continue;
     }
 
+    layersToTest << vl;
+  }
+
+  QImage* img = dynamic_cast<QImage*>( context.painter()->device() );
+  QPainter* oldPainter = context.painter();
+  QPainter* imgPainter = 0;
+  if (img) {
+    std::cout << "device is an image" << std::endl;
+    if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) ) {
+      // we have a cache image, use it
+      std::cout << "use cache image" << std::endl;
+      context.painter()->drawImage( QPoint(0,0), *mCacheImage );
+      return true;
+    }
+    mCacheImage.reset( new QImage( img->width(), img->height(), img->format() ) );
+    mCacheImage->fill( QColor(0,0,0,0) );
+    imgPainter = new QPainter( mCacheImage.data() );
+    context.setPainter( imgPainter );
+  }
+
+  // draw labels
+  foreach( QgsVectorLayer* vl, layersToTest ) {
     QStringList attrNames;
     pal->prepareLayer( vl, attrNames, context );
 
@@ -88,6 +170,13 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   if ( !nothingToLabel ) {
     pal->drawLabeling( context );
     pal->exit();
+  }
+
+  if (img) {
+    // restore painter
+    imgPainter->end();
+    context.setPainter( oldPainter );
+    oldPainter->drawImage( QPoint(0,0), *mCacheImage );
   }
 
   return true;

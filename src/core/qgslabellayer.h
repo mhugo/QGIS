@@ -17,6 +17,36 @@
 
 #include "qgsmaplayer.h"
 
+class QgsLabelLayerCacheTest : public QObject
+{
+  Q_OBJECT
+
+public:
+
+  QgsLabelLayerCacheTest() : mInvalidated(false) {}
+  ~QgsLabelLayerCacheTest();
+
+  //
+  // Cache test. Returns true if the last call was with the same parameters
+  // and with vector layers not invalidated
+  bool test( QgsRectangle extent, double scale, QSet<QgsVectorLayer*> layers );
+
+private slots:
+  void onRepaintLayer();
+
+private:
+  // list of layer' id
+  QSet<QString> mLayers;
+  // extent
+  QgsRectangle mExtent;
+  // scale
+  double mScale;
+
+  void disconnectLayers();
+
+  bool mInvalidated;
+};
+
 /** \ingroup core
     Label layer class
  */
@@ -46,6 +76,10 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
 
  private:
     QVector<QgsVectorLayer*> mLayers;
+
+    QgsLabelLayerCacheTest mCacheTest;
+
+    QScopedPointer<QImage> mCacheImage;
 };
 
 #endif // QGSLABELLAYER_H
