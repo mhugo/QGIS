@@ -56,7 +56,8 @@ class CORE_EXPORT QgsMapLayer : public QObject
     {
       VectorLayer,
       RasterLayer,
-      PluginLayer
+      PluginLayer,
+      LabelLayer
     };
 
     /** Constructor

@@ -319,8 +319,8 @@ void QgsMapRendererJob::drawNewLabeling( const QgsMapSettings& settings, QgsRend
     renderContext.setExtent( settings.visibleExtent() );
     renderContext.setCoordinateTransform( NULL );
 
-    labelingEngine->drawLabeling( renderContext );
-    labelingEngine->exit();
+    //    labelingEngine->drawLabeling( renderContext );
+    //    labelingEngine->exit();
   }
 }
 

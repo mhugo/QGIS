@@ -1482,6 +1482,10 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer
      */
     bool simplifyDrawingCanbeApplied( const QgsRenderContext& renderContext, QgsVectorSimplifyMethod::SimplifyHint simplifyHint ) const;
 
+    QString labelLayer() const;
+
+    void setLabelLayer( QString labelLayerName );
+
   public slots:
     /**
      * Select feature by its ID
@@ -1824,6 +1828,8 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer
 
     // Feature counts for each renderer symbol
     QMap<QgsSymbolV2*, long> mSymbolFeatureCountMap;
+
+    QString mLabelLayer;
 
     friend class QgsVectorLayerFeatureSource;
 };

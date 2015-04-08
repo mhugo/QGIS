@@ -3886,3 +3886,13 @@ bool QgsAttributeEditorRelation::init( QgsRelationManager* relationManager )
   mRelation = relationManager->relation( mRelationId );
   return mRelation.isValid();
 }
+
+QString QgsVectorLayer::labelLayer() const
+{
+  return mLabelLayer;
+}
+
+void QgsVectorLayer::setLabelLayer( QString labelLayerName )
+{
+  mLabelLayer = labelLayerName;
+}

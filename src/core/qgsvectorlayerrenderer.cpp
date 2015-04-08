@@ -93,7 +93,7 @@ QgsVectorLayerRenderer::QgsVectorLayerRenderer( QgsVectorLayer* layer, QgsRender
   mAttrNames = mRendererV2->usedAttributes();
 
   //register label and diagram layer to the labeling engine
-  prepareLabeling( layer, mAttrNames );
+  //  prepareLabeling( layer, mAttrNames );
   prepareDiagrams( layer, mAttrNames );
 
 }
@@ -277,7 +277,7 @@ void QgsVectorLayerRenderer::drawRendererV2( QgsFeatureIterator& fit )
       {
         if ( mLabeling )
         {
-          mContext.labelingEngine()->registerFeature( mLayerID, fet, mContext );
+          //mContext.labelingEngine()->registerFeature( mLayerID, fet, mContext );
         }
         if ( mDiagrams )
         {

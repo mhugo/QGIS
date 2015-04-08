@@ -102,6 +102,7 @@ SET(QGIS_CORE_SRCS
   qgslayerdefinition.cpp
   qgslabel.cpp
   qgslabelattributes.cpp
+  qgslabellayer.cpp
   qgslabelsearchtree.cpp
   qgslegacyhelpers.cpp
   qgslegendrenderer.cpp
@@ -347,6 +348,7 @@ SET(QGIS_CORE_MOC_HDRS
   qgsdataprovider.h
   qgsgml.h
   qgsgmlschema.h
+  qgslabellayer.h
   qgsmaplayer.h
   qgsmaplayerlegend.h
   qgsmaplayerregistry.h

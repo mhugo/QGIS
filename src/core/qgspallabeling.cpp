@@ -5072,6 +5072,7 @@ QgsLabelingEngineInterface* QgsPalLabeling::clone()
   lbl->mShowingShadowRects = mShowingShadowRects;
   lbl->mShowingPartialsLabels = mShowingPartialsLabels;
   lbl->mDrawOutlineLabels = mDrawOutlineLabels;
+  lbl->init(*mMapSettings);
   return lbl;
 }
 

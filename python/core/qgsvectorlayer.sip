@@ -1119,6 +1119,10 @@ class QgsVectorLayer : QgsMapLayer
      */
     bool simplifyDrawingCanbeApplied( const QgsRenderContext& renderContext, QgsVectorSimplifyMethod::SimplifyHint simplifyHint ) const;
 
+    QString labelLayer() const;
+
+    void setLabelLayer( QString labelLayerName );
+
   public slots:
     /**
      * Select feature by its ID

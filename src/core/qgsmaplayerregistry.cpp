@@ -18,14 +18,14 @@
 #include "qgsmaplayerregistry.h"
 #include "qgsmaplayer.h"
 #include "qgslogger.h"
+#include "qgslabellayer.h"
 
 //
 // Main class begins now...
 //
 
-QgsMapLayerRegistry::QgsMapLayerRegistry( QObject *parent ) : QObject( parent )
+QgsMapLayerRegistry::QgsMapLayerRegistry( QObject *parent ) : QObject( parent ), mMainLabelLayer(0)
 {
-  // constructor does nothing
 }
 
 QgsMapLayerRegistry::~QgsMapLayerRegistry()
@@ -57,6 +57,11 @@ QList<QgsMapLayer *> QgsMapLayerRegistry::mapLayersByName( QString layerName )
   return myResultList;
 }
 
+QgsLabelLayer* QgsMapLayerRegistry::mainLabelLayer()
+{
+  return qobject_cast<QgsLabelLayer*>(mMainLabelLayer);
+}
+
 //introduced in 1.8
 QList<QgsMapLayer *> QgsMapLayerRegistry::addMapLayers(
   QList<QgsMapLayer *> theMapLayers,
@@ -79,6 +84,13 @@ QList<QgsMapLayer *> QgsMapLayerRegistry::addMapLayers(
       myResultList << mMapLayers[myLayer->id()];
       if ( takeOwnership )
         mOwnedLayers << myLayer;
+
+      if ( myLayer->type() == QgsMapLayer::LabelLayer ) {
+        if ( mLabelLayers.size() == 0 ) {
+          mMainLabelLayer = myLayer;
+        }
+        mLabelLayers << myLayer;
+      }
       emit layerWasAdded( myLayer );
     }
   }
@@ -112,6 +124,18 @@ void QgsMapLayerRegistry::removeMapLayers( QStringList theLayerIds )
   foreach ( const QString &myId, theLayerIds )
   {
     QgsMapLayer* lyr = mMapLayers[myId];
+    if ( mLabelLayers.contains(lyr) )
+    {
+      mLabelLayers.remove( lyr );
+      if ( mMainLabelLayer == lyr ) {
+        if ( mLabelLayers.size() > 0 ) {
+          mMainLabelLayer = *mLabelLayers.begin();
+        }
+        else {
+          mMainLabelLayer = 0;
+        }
+      }
+    }
     if ( mOwnedLayers.contains( lyr ) )
     {
       emit layerWillBeRemoved( myId );
@@ -135,7 +159,7 @@ void QgsMapLayerRegistry::removeAllMapLayers()
   // now let all canvas observers know to clear themselves,
   // and then consequently any of their map legends
   removeMapLayers( mMapLayers.keys() );
-  mMapLayers.clear();
+  //mMapLayers.clear();
 } // QgsMapLayerRegistry::removeAllMapLayers()
 
 void QgsMapLayerRegistry::clearAllLayerCaches()

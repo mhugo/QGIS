@@ -49,6 +49,7 @@
 %Include qgshttptransaction.sip
 %Include qgslabel.sip
 %Include qgslabelattributes.sip
+%Include qgslabellayer.sip
 %Include qgslabelsearchtree.sip
 %Include qgslegendrenderer.sip
 %Include qgslegendsettings.sip
