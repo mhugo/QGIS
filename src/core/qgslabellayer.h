@@ -29,7 +29,7 @@ public:
   //
   // Cache test. Returns true if the last call was with the same parameters
   // and with vector layers not invalidated
-  bool test( QgsRectangle extent, double scale, QSet<QgsVectorLayer*> layers );
+  bool test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers );
 
 private slots:
   void onRepaintLayer();

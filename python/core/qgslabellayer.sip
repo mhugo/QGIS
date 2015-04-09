@@ -6,12 +6,14 @@ class QgsLabelLayer : QgsMapLayer
 %End
 
   public:
-    QgsLabelLayer( QString layerName = QString() );
+    QgsLabelLayer( QString layerName = "" );
 
     /**
      * Rendering part
      */
     virtual bool draw( QgsRenderContext& rendererContext );
+
+    virtual QgsMapLayerRenderer* createMapRenderer( QgsRenderContext& rendererContext );
 
     virtual bool readSymbology( const QDomNode& node, QString& errorMessage);
 

@@ -22,7 +22,7 @@
 #include "qgsmaplayerregistry.h"
 #include "qgsgeometry.h"
 
-bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, QSet<QgsVectorLayer*> layers )
+bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers )
 {
   bool hit = true;
   if ( scale != mScale ) {
@@ -33,10 +33,10 @@ bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, QSet<QgsVe
   }
   // now compare layers
   QSet<QString> layerIds;
+  foreach( QgsVectorLayer* vl, layers ) {
+    layerIds << vl->id();
+  }
   if ( hit ) {
-    foreach( QgsVectorLayer* vl, layers ) {
-      layerIds << vl->id();
-    }
     if ( layerIds != mLayers ) {
       hit = false;
     }
@@ -55,6 +55,7 @@ bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, QSet<QgsVe
   foreach( QgsVectorLayer* vl, layers ) {
     connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
   }
+  mInvalidated = false;
 
   return hit;
 }
