@@ -86,6 +86,16 @@ int QgsMapToPixel::mapWidth() const
   return mWidth;
 }
 
+double QgsMapToPixel::xMinimum() const
+{
+  return xMin;
+}
+
+double QgsMapToPixel::yMinimum() const
+{
+  return yMin;
+}
+
 void QgsMapToPixel::updateMatrix()
 {
   double rotation = mapRotation();

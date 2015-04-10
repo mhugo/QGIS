@@ -154,21 +154,27 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     context.setPainter( imgPainter );
   }
 
+  // context.extent only gives the requested extent for redraw
+  // we need the visible extent
+
+  double x0 = context.mapToPixel().xMinimum();
+  double y0 = context.mapToPixel().yMinimum();
+  double x1 = x0 + context.mapToPixel().mapUnitsPerPixel() * context.mapToPixel().mapWidth();
+  double y1 = y0 + context.mapToPixel().mapUnitsPerPixel() * context.mapToPixel().mapHeight();
+  QgsRectangle rect( x0, y0, x1, y1 );
+
   // draw labels
   foreach( QgsVectorLayer* vl, layersToTest ) {
     QStringList attrNames;
     pal->prepareLayer( vl, attrNames, context );
 
     QgsFeature fet;
-    QgsRectangle rect = context.extent();
-
+    std::cout << rect.xMinimum() << "," << rect.yMinimum() << "," << rect.xMaximum() << "," << rect.yMaximum() << std::endl;
+    std::cout << context.mapToPixel().mapWidth() << "x" << context.mapToPixel().mapHeight() << std::endl;
     // a label layer has no CRS per se (it refers multiple layers), so we need to access labeling settings
     QgsPalLayerSettings& plyr = pal->layer( vl->id() );
     if ( plyr.ct ) {
-      rect = plyr.ct->transformBoundingBox( context.extent(), QgsCoordinateTransform::ReverseTransform );
-    }
-    else {
-      rect = context.extent();
+      rect = plyr.ct->transformBoundingBox( rect, QgsCoordinateTransform::ReverseTransform );
     }
     QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( rect ).setSubsetOfAttributes( attrNames, vl->dataProvider()->fields() );
 

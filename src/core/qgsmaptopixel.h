@@ -129,6 +129,10 @@ class CORE_EXPORT QgsMapToPixel
     //! @note added in 2.8
     int mapHeight() const;
 
+    double xMinimum() const;
+
+    double yMinimum() const;
+
     //! Set map rotation in degrees (clockwise)
     //! @param degrees clockwise rotation in degrees
     //! @param cx X ordinate of map center in geographical units
