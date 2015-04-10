@@ -152,6 +152,8 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
 
   mGeometryCaches.clear();
 
+  bool needMainLabelLayer = false;
+
   while ( li.hasPrevious() )
   {
     QString layerId = li.previous();
@@ -199,12 +201,16 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
     }
 
     // Force render of layers that are being edited
-    // or if there's a labeling engine that needs the layer to register features
-    if ( mCache && ml->type() == QgsMapLayer::VectorLayer )
+    if ( ml->type() == QgsMapLayer::VectorLayer )
     {
       QgsVectorLayer* vl = qobject_cast<QgsVectorLayer *>( ml );
-      if ( vl->isEditable() || ( labelingEngine && labelingEngine->willUseLayer( vl ) ) )
+      if ( mCache && vl->isEditable() )
         mCache->clearCacheImage( ml->id() );
+
+      if ( !needMainLabelLayer && labelingEngine && labelingEngine->willUseLayer( vl ) && vl->labelLayer().isEmpty() )
+      {
+        needMainLabelLayer = true;
+      }
     }
 
     layerJobs.append( LayerRenderJob() );
@@ -273,6 +279,20 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
     }
 
   } // while (li.hasPrevious())
+
+  if ( needMainLabelLayer ) {
+    std::cout << "add a label layer" << std::endl;
+    layerJobs.append( LayerRenderJob() );
+    LayerRenderJob& job = layerJobs.last();
+    job.cached = false;
+    job.img = 0;
+    job.context = QgsRenderContext::fromMapSettings( mSettings );
+    job.context.setPainter( painter );
+    job.context.setLabelingEngine( labelingEngine );
+    job.context.setExtent( mSettings.extent() );
+    // use the main label layer
+    job.renderer = QgsLabelLayer::mainLabelLayer()->createMapRenderer( job.context );
+  }
 
   return layerJobs;
 }

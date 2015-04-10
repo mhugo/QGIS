@@ -21,7 +21,6 @@
 #include "qgsvectorlayer.h"
 #include "qgsmapcanvas.h"
 #include "qgsmaplayerregistry.h"
-#include "qgslabellayer.h"
 
 QgsLayerTreeMapCanvasBridge::QgsLayerTreeMapCanvasBridge( QgsLayerTreeGroup *root, QgsMapCanvas *canvas, QObject* parent )
     : QObject( parent )
@@ -101,12 +100,6 @@ void QgsLayerTreeMapCanvasBridge::setCustomLayerOrder( const QStringList& order 
 void QgsLayerTreeMapCanvasBridge::setCanvasLayers()
 {
   QList<QgsMapCanvasLayer> layers;
-
-  if ( QgsMapLayerRegistry::instance()->mainLabelLayer() == nullptr ) {
-    std::cout << "add a label layer" << std::endl;
-    QgsMapLayerRegistry::instance()->addMapLayer( new QgsLabelLayer(), /* addToLegend = */ false, /*takeOwnership = */ true );
-  }
-  layers << QgsMapCanvasLayer( QgsMapLayerRegistry::instance()->mainLabelLayer(), true, false );
 
   if ( mHasCustomLayerOrder )
   {

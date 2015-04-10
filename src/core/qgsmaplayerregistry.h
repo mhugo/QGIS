@@ -27,7 +27,6 @@
 #include "qgssingleton.h"
 class QString;
 class QgsMapLayer;
-class QgsLabelLayer;
 
 /** \ingroup core
 * This class tracks map layers that are currently loaded and provides
@@ -51,8 +50,6 @@ class CORE_EXPORT QgsMapLayerRegistry : public QObject, public QgsSingleton<QgsM
 
     //! Retrieve the mapLayers collection (mainly intended for use by projection)
     const QMap<QString, QgsMapLayer*> & mapLayers();
-
-    QgsLabelLayer* mainLabelLayer();
 
     /**
      * @brief
@@ -245,9 +242,6 @@ class CORE_EXPORT QgsMapLayerRegistry : public QObject, public QgsSingleton<QgsM
 
     QMap<QString, QgsMapLayer*> mMapLayers;
     QSet<QgsMapLayer*> mOwnedLayers;
-
-    QSet<QgsMapLayer*> mLabelLayers;
-    QgsMapLayer* mMainLabelLayer;
 
     friend class QgsSingleton<QgsMapLayerRegistry>; // Let QgsSingleton access private constructor
 }; // class QgsMapLayerRegistry

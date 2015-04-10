@@ -607,6 +607,9 @@ class CORE_EXPORT QgsMapLayer : public QObject
     /** \brief Error */
     QgsError mError;
 
+    /** Unique ID of this layer - used to refer to this layer in map layer registry */
+    QString mID;
+
   private:
     /** layer's spatial reference system.
         private to make sure setCrs must be used and layerCrsChanged() is emitted */
@@ -617,9 +620,6 @@ class CORE_EXPORT QgsMapLayer : public QObject
 
     /** private assign operator - QgsMapLayer not copyable */
     QgsMapLayer & operator=( QgsMapLayer const & );
-
-    /** Unique ID of this layer - used to refer to this layer in map layer registry */
-    QString mID;
 
     /** Type of the layer (eg. vector, raster) */
     QgsMapLayer::LayerType mLayerType;

@@ -74,6 +74,8 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
       return true;
     }
 
+    static QgsLabelLayer* mainLabelLayer();
+
  private:
     QVector<QgsVectorLayer*> mLayers;
 

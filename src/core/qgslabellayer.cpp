@@ -101,6 +101,18 @@ QgsLabelLayer::QgsLabelLayer( QString layerName )
   mValid = true;
 }
 
+QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
+{
+  static QgsLabelLayer mainLayer;
+  static bool init = false;
+  if (!init) {
+    // this is a special layer, with a special id
+    mainLayer.mID = "_mainlabels_";
+    init = true;
+  }
+  return &mainLayer;
+}
+
 bool QgsLabelLayer::draw( QgsRenderContext& context )
 {
   if ( !context.labelingEngine() ) {
@@ -116,14 +128,13 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
       continue;
     }
     QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
-    if ( vl->labelLayer() != name() ) {
-        continue;
-    }
-    if ( !pal->willUseLayer( vl ) ) {
-      continue;
-    }
 
-    layersToTest << vl;
+    if ( ((vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
+          (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() )) &&
+         pal->willUseLayer( vl ) )
+    {
+      layersToTest << vl;
+    }
   }
 
   QImage* img = dynamic_cast<QImage*>( context.painter()->device() );

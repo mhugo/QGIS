@@ -55,8 +55,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         enableLabels( vl, "NAME_1 || markRendering(0)", True )
         enableLabels( vl2, "NAME_1 || markRendering(0)", True )
 
-        ll = QgsLabelLayer()
-        QgsMapLayerRegistry.instance().addMapLayers([vl, vl2, ll])
+        QgsMapLayerRegistry.instance().addMapLayers([vl, vl2])
 
         # map settings
         ms = QgsMapSettings()
@@ -74,7 +73,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
 
         ms.setFlags( ms.flags() | QgsMapSettings.DrawLabeling );
 
-        ms.setLayers([ll.id(), vl.id() ])
+        ms.setLayers([vl.id(), vl2.id()])
 
         def _testCache():
             global gRendered
@@ -112,7 +111,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         vl.triggerRepaint()
         _testCache()
 
-    def xtest1(self):
+    def test1(self):
         self.TEST_DATA_DIR = unitTestDataPath()
         fi = QFileInfo( self.TEST_DATA_DIR + "/france_parts.shp")
         vl = QgsVectorLayer( fi.filePath(), fi.completeBaseName(), "ogr" )
@@ -130,8 +129,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         enableLabels( vl2, "NOM_DEPT" )
 
         ll = QgsLabelLayer()
-        ll2 = QgsLabelLayer( "labels2" )
-        QgsMapLayerRegistry.instance().addMapLayers([vl, vl2, ll, ll2])
+        QgsMapLayerRegistry.instance().addMapLayers([vl, vl2, ll])
 
         # map settings
         ms = QgsMapSettings()
@@ -155,8 +153,8 @@ class TestPyQgsLabelLayer(unittest.TestCase):
             img = renderMapToImage( ms )
             img.save("t1.png")
 
-        vl2.setLabelLayer("labels2")
-        ms.setLayers([ll2.id(), ll.id(), vl2.id(), vl.id() ])
+        vl2.setLabelLayer(ll.id())
+        ms.setLayers([ll.id(), vl2.id(), vl.id() ])
 
         img = renderMapToImage( ms )
         img.save("t2.png")

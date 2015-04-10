@@ -29,6 +29,8 @@
 
 #include "qgsgeometrycache.h"
 
+#include "qgslabellayer.h"
+
 class QgsLabelingResults;
 class QgsMapLayerRenderer;
 class QgsMapRendererCache;
