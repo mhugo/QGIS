@@ -137,23 +137,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     }
   }
 
-  QImage* img = dynamic_cast<QImage*>( context.painter()->device() );
-  QPainter* oldPainter = context.painter();
-  QPainter* imgPainter = 0;
-  if (img) {
-    std::cout << "device is an image" << std::endl;
-    if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) ) {
-      // we have a cache image, use it
-      std::cout << "use cache image" << std::endl;
-      context.painter()->drawImage( QPoint(0,0), *mCacheImage );
-      return true;
-    }
-    mCacheImage.reset( new QImage( img->width(), img->height(), img->format() ) );
-    mCacheImage->fill( QColor(0,0,0,0) );
-    imgPainter = new QPainter( mCacheImage.data() );
-    context.setPainter( imgPainter );
-  }
-
   // context.extent only gives the requested extent for redraw
   // we need the visible extent
 
@@ -170,32 +153,53 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   double y0 = std::min( p1.y(), std::min( p2.y(), std::min( p3.y(), p4.y() ) ) );
   double x1 = std::max( p1.x(), std::max( p2.x(), std::max( p3.x(), p4.x() ) ) );
   double y1 = std::max( p1.y(), std::max( p2.y(), std::max( p3.y(), p4.y() ) ) );
-  QgsRectangle rect( x0, y0, x1, y1 );
+  QgsRectangle visibleExtent( x0, y0, x1, y1 );
 
   // copy the context to a local context
   // and fix the extent to the visible extent
   QgsRenderContext localContext( context );
-  localContext.setExtent( rect );
+  localContext.setExtent( visibleExtent );
+
+  QImage* img = dynamic_cast<QImage*>( localContext.painter()->device() );
+  QPainter* oldPainter = localContext.painter();
+  QPainter* imgPainter = 0;
+  if (img) {
+    std::cout << "device is an image" << std::endl;
+    if ( mCacheTest.test( visibleExtent, localContext.scaleFactor(), layersToTest ) ) {
+      // we have a cache image, use it
+      std::cout << "use cache image" << std::endl;
+      localContext.painter()->drawImage( QPoint(0,0), *mCacheImage );
+      return true;
+    }
+    mCacheImage.reset( new QImage( img->width(), img->height(), img->format() ) );
+    mCacheImage->fill( QColor(0,0,0,0) );
+    imgPainter = new QPainter( mCacheImage.data() );
+    localContext.setPainter( imgPainter );
+  }
 
   // draw labels
   foreach( QgsVectorLayer* vl, layersToTest ) {
     QStringList attrNames;
-    pal->prepareLayer( vl, attrNames, context );
+    pal->prepareLayer( vl, attrNames, localContext );
 
     QgsFeature fet;
-    std::cout << rect.xMinimum() << "," << rect.yMinimum() << "," << rect.xMaximum() << "," << rect.yMaximum() << std::endl;
-    std::cout << context.mapToPixel().mapWidth() << "x" << context.mapToPixel().mapHeight() << std::endl;
     // a label layer has no CRS per se (it refers multiple layers), so we need to access labeling settings
     QgsPalLayerSettings& plyr = pal->layer( vl->id() );
-    if ( plyr.ct ) {
-      rect = plyr.ct->transformBoundingBox( rect, QgsCoordinateTransform::ReverseTransform );
+    QgsRectangle dataExtent;
+    if ( plyr.ct )
+    {
+      dataExtent = plyr.ct->transformBoundingBox( visibleExtent, QgsCoordinateTransform::ReverseTransform );
     }
-    QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( rect ).setSubsetOfAttributes( attrNames, vl->dataProvider()->fields() );
+    else
+    {
+      dataExtent = visibleExtent;
+    }
+    QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( dataExtent ).setSubsetOfAttributes( attrNames, vl->dataProvider()->fields() );
 
     QgsFeatureIterator fit = vl->getFeatures( req );
     while ( fit.nextFeature( fet ) ) {
       nothingToLabel = false;
-      pal->registerFeature( vl->id(), fet, context );
+      pal->registerFeature( vl->id(), fet, localContext );
     }
   }
 
