@@ -157,11 +157,25 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   // context.extent only gives the requested extent for redraw
   // we need the visible extent
 
-  double x0 = context.mapToPixel().xMinimum();
-  double y0 = context.mapToPixel().yMinimum();
-  double x1 = x0 + context.mapToPixel().mapUnitsPerPixel() * context.mapToPixel().mapWidth();
-  double y1 = y0 + context.mapToPixel().mapUnitsPerPixel() * context.mapToPixel().mapHeight();
+  // FIXME toMapCoordinates works when rotation are used
+  // but might be a bit slow (matrix inversion inside)
+  // consider using a simpler computation when non rotation ?
+  QgsMapToPixel p = context.mapToPixel();
+  QgsPoint p1 = p.toMapCoordinates( QPoint( 0, 0 ) );
+  QgsPoint p2 = p.toMapCoordinates( QPoint( 0, p.mapHeight() ) );
+  QgsPoint p3 = p.toMapCoordinates( QPoint( p.mapWidth(), 0 ) );
+  QgsPoint p4 = p.toMapCoordinates( QPoint( p.mapWidth(), p.mapHeight() ) );
+
+  double x0 = std::min( p1.x(), std::min( p2.x(), std::min( p3.x(), p4.x() ) ) );
+  double y0 = std::min( p1.y(), std::min( p2.y(), std::min( p3.y(), p4.y() ) ) );
+  double x1 = std::max( p1.x(), std::max( p2.x(), std::max( p3.x(), p4.x() ) ) );
+  double y1 = std::max( p1.y(), std::max( p2.y(), std::max( p3.y(), p4.y() ) ) );
   QgsRectangle rect( x0, y0, x1, y1 );
+
+  // copy the context to a local context
+  // and fix the extent to the visible extent
+  QgsRenderContext localContext( context );
+  localContext.setExtent( rect );
 
   // draw labels
   foreach( QgsVectorLayer* vl, layersToTest ) {
@@ -186,7 +200,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   }
 
   if ( !nothingToLabel ) {
-    pal->drawLabeling( context );
+    pal->drawLabeling( localContext );
     pal->exit();
   }
 
