@@ -60,6 +60,11 @@ bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet
   return hit;
 }
 
+void QgsLabelLayerCacheTest::invalidate()
+{
+  mInvalidated = true;
+}
+
 void QgsLabelLayerCacheTest::disconnectLayers()
 {
   foreach( const QString& lid, mLayers ) {
@@ -95,10 +100,30 @@ public:
 };
 
 QgsLabelLayer::QgsLabelLayer( QString layerName )
-    : QgsMapLayer( LabelLayer, layerName )
+  : QgsMapLayer( LabelLayer, layerName ),
+    mCacheEnabled( false )
 {
   setLegend( new QgsLabelLayerLegend() );
   mValid = true;
+
+  // invalidate cache when triggerRepaint is called, to be consistent with QgsMapLayer's behaviour
+  connect( this, SIGNAL( repaintRequested() ), this, SIGNAL( invalidateCache() ) );
+}
+
+void QgsLabelLayer::invalidateCache()
+{
+  std::cout << "invalidate cache" << std::endl;
+  mCacheTest.invalidate();
+}
+
+bool QgsLabelLayer::cacheEnabled() const
+{
+  return mCacheEnabled;
+}
+
+void QgsLabelLayer::setCacheEnabled( bool enable )
+{
+  mCacheEnabled = enable;
 }
 
 QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
@@ -130,6 +155,7 @@ QgsVectorLayer* vectorLayer( const QString& lid )
 bool QgsLabelLayer::draw( QgsRenderContext& context )
 {
   bool cancelled = false;
+
   if ( !context.labelingEngine() ) {
     return false;
   }
@@ -162,7 +188,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   QImage* img = dynamic_cast<QImage*>( context.painter()->device() );
   QPainter* oldPainter = context.painter();
   QPainter* imgPainter = 0;
-  if (img) {
+  if ( mCacheEnabled && img ) {
     std::cout << "device is an image" << std::endl;
     if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) ) {
       // we have a cache image, use it
@@ -225,7 +251,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     pal->exit();
   }
 
-  if (img) {
+  if ( mCacheEnabled && img) {
     // restore painter
     imgPainter->end();
     context.setPainter( oldPainter );

@@ -57,6 +57,8 @@ class TestPyQgsLabelLayer(unittest.TestCase):
 
         QgsMapLayerRegistry.instance().addMapLayers([vl, vl2])
 
+        QgsLabelLayer.mainLabelLayer().setCacheEnabled( True )
+
         # map settings
         ms = QgsMapSettings()
         crs = QgsCoordinateReferenceSystem(2154)

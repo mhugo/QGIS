@@ -31,6 +31,9 @@ public:
   // and with vector layers not invalidated
   bool test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers );
 
+  // force invalidation
+  void invalidate();
+
 private slots:
   void onRepaintLayer();
 
@@ -74,7 +77,14 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
       return true;
     }
 
+    bool cacheEnabled() const;
+
+    void setCacheEnabled( bool e );
+
     static QgsLabelLayer* mainLabelLayer();
+
+ private slots:
+    void invalidateCache();
 
  private:
     QVector<QgsVectorLayer*> mLayers;
@@ -82,6 +92,8 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     QgsLabelLayerCacheTest mCacheTest;
 
     QScopedPointer<QImage> mCacheImage;
+
+    bool mCacheEnabled;
 };
 
 #endif // QGSLABELLAYER_H
