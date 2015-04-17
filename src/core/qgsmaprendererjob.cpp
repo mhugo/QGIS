@@ -287,9 +287,32 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
     job.cached = false;
     job.img = 0;
     job.context = QgsRenderContext::fromMapSettings( mSettings );
-    job.context.setPainter( painter );
+    if ( mCache )
+    {
+      QImage * mypFlattenedImage = 0;
+      mypFlattenedImage = new QImage( mSettings.outputSize().width(),
+                                      mSettings.outputSize().height(),
+                                      mSettings.outputImageFormat() );
+      if ( mypFlattenedImage->isNull() )
+      {
+        mErrors.append( Error( "Label layer", tr( "Insufficient memory for image %1x%2" ).arg( mSettings.outputSize().width() ).arg( mSettings.outputSize().height() ) ) );
+        delete mypFlattenedImage;
+        layerJobs.removeLast();
+        return layerJobs;
+      }
+      mypFlattenedImage->fill( 0 );
+
+      job.img = mypFlattenedImage;
+      QPainter* mypPainter = new QPainter( job.img );
+      mypPainter->setRenderHint( QPainter::Antialiasing, mSettings.testFlag( QgsMapSettings::Antialiasing ) );
+      job.context.setPainter( mypPainter );
+    }
+    else
+    {
+      job.context.setPainter( painter );
+    }
     job.context.setLabelingEngine( labelingEngine );
-    job.context.setExtent( mSettings.extent() );
+    job.context.setExtent( mSettings.visibleExtent() );
     // use the main label layer
     job.renderer = QgsLabelLayer::mainLabelLayer()->createMapRenderer( job.context );
   }

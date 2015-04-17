@@ -113,8 +113,23 @@ QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
   return &mainLayer;
 }
 
+// local exception class used by vectorLayer()
+struct CancelRendering {};
+
+// local function that will throw when the given layer does not exist anymore
+QgsVectorLayer* vectorLayer( const QString& lid )
+{
+  QgsMapLayer* ml = QgsMapLayerRegistry::instance()->mapLayer( lid );
+  if ( !ml )
+  {
+    throw CancelRendering();
+  }
+  return static_cast<QgsVectorLayer*>(ml);
+}
+
 bool QgsLabelLayer::draw( QgsRenderContext& context )
 {
+  bool cancelled = false;
   if ( !context.labelingEngine() ) {
     return false;
   }
@@ -123,6 +138,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
 
   bool nothingToLabel = true;
   QSet<QgsVectorLayer*> layersToTest;
+  QSet<QString> layersIdToTest;
   foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() ) {
     if ( ml->type() != QgsMapLayer::VectorLayer ) {
       continue;
@@ -134,77 +150,78 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
          pal->willUseLayer( vl ) )
     {
       layersToTest << vl;
+      layersIdToTest << vl->id();
+    }
+
+    if ( context.renderingStopped() )
+    {
+      return false;
     }
   }
 
-  // context.extent only gives the requested extent for redraw
-  // we need the visible extent
-
-  // FIXME toMapCoordinates works when rotation are used
-  // but might be a bit slow (matrix inversion inside)
-  // consider using a simpler computation when non rotation ?
-  QgsMapToPixel p = context.mapToPixel();
-  QgsPoint p1 = p.toMapCoordinates( QPoint( 0, 0 ) );
-  QgsPoint p2 = p.toMapCoordinates( QPoint( 0, p.mapHeight() ) );
-  QgsPoint p3 = p.toMapCoordinates( QPoint( p.mapWidth(), 0 ) );
-  QgsPoint p4 = p.toMapCoordinates( QPoint( p.mapWidth(), p.mapHeight() ) );
-
-  double x0 = std::min( p1.x(), std::min( p2.x(), std::min( p3.x(), p4.x() ) ) );
-  double y0 = std::min( p1.y(), std::min( p2.y(), std::min( p3.y(), p4.y() ) ) );
-  double x1 = std::max( p1.x(), std::max( p2.x(), std::max( p3.x(), p4.x() ) ) );
-  double y1 = std::max( p1.y(), std::max( p2.y(), std::max( p3.y(), p4.y() ) ) );
-  QgsRectangle visibleExtent( x0, y0, x1, y1 );
-
-  // copy the context to a local context
-  // and fix the extent to the visible extent
-  QgsRenderContext localContext( context );
-  localContext.setExtent( visibleExtent );
-
-  QImage* img = dynamic_cast<QImage*>( localContext.painter()->device() );
-  QPainter* oldPainter = localContext.painter();
+  QImage* img = dynamic_cast<QImage*>( context.painter()->device() );
+  QPainter* oldPainter = context.painter();
   QPainter* imgPainter = 0;
   if (img) {
     std::cout << "device is an image" << std::endl;
-    if ( mCacheTest.test( visibleExtent, localContext.scaleFactor(), layersToTest ) ) {
+    if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) ) {
       // we have a cache image, use it
       std::cout << "use cache image" << std::endl;
-      localContext.painter()->drawImage( QPoint(0,0), *mCacheImage );
+      context.painter()->drawImage( QPoint(0,0), *mCacheImage );
       return true;
     }
     mCacheImage.reset( new QImage( img->width(), img->height(), img->format() ) );
     mCacheImage->fill( QColor(0,0,0,0) );
     imgPainter = new QPainter( mCacheImage.data() );
-    localContext.setPainter( imgPainter );
+    context.setPainter( imgPainter );
   }
 
   // draw labels
-  foreach( QgsVectorLayer* vl, layersToTest ) {
-    QStringList attrNames;
-    pal->prepareLayer( vl, attrNames, localContext );
-
-    QgsFeature fet;
-    // a label layer has no CRS per se (it refers multiple layers), so we need to access labeling settings
-    QgsPalLayerSettings& plyr = pal->layer( vl->id() );
-    QgsRectangle dataExtent;
-    if ( plyr.ct )
+  try
+  {
+    foreach( const QString& vlid, layersIdToTest )
     {
-      dataExtent = plyr.ct->transformBoundingBox( visibleExtent, QgsCoordinateTransform::ReverseTransform );
-    }
-    else
-    {
-      dataExtent = visibleExtent;
-    }
-    QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( dataExtent ).setSubsetOfAttributes( attrNames, vl->dataProvider()->fields() );
+      // we call vectorLayer(vlid) each time the vector layer is needed
+      // it will then throw an exception if the layer has been deleted by another thread
+      // and allows to cancel the rendering
+      QStringList attrNames;
+      pal->prepareLayer( vectorLayer(vlid), attrNames, context );
 
-    QgsFeatureIterator fit = vl->getFeatures( req );
-    while ( fit.nextFeature( fet ) ) {
-      nothingToLabel = false;
-      pal->registerFeature( vl->id(), fet, localContext );
+      QgsFeature fet;
+      // a label layer has no CRS per se (it refers multiple layers), so we need to access labeling settings
+      QgsPalLayerSettings& plyr = pal->layer( vlid );
+      QgsRectangle dataExtent;
+      if ( plyr.ct )
+      {
+        dataExtent = plyr.ct->transformBoundingBox( context.extent(), QgsCoordinateTransform::ReverseTransform );
+      }
+      else
+      {
+        dataExtent = context.extent();
+      }
+      QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( dataExtent ).setSubsetOfAttributes( attrNames, vectorLayer(vlid)->dataProvider()->fields() );
+
+      QgsFeatureIterator fit = vectorLayer(vlid)->getFeatures( req );
+      while ( fit.nextFeature( fet ) ) {
+        if ( context.renderingStopped() )
+        {
+          throw CancelRendering();
+        }
+
+        nothingToLabel = false;
+        pal->registerFeature( vectorLayer(vlid)->id(), // makes sure the layer still exists
+                              fet,
+                              context );
+      }
     }
   }
+  catch ( CancelRendering& )
+  {
+    cancelled = true;
+  }
 
-  if ( !nothingToLabel ) {
-    pal->drawLabeling( localContext );
+  if ( !cancelled && !nothingToLabel ) {
+    pal->drawLabeling( context );
     pal->exit();
   }
 
@@ -215,7 +232,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     oldPainter->drawImage( QPoint(0,0), *mCacheImage );
   }
 
-  return true;
+  return !cancelled;
 }
 
 class QgsLabelLayerRenderer : public QgsMapLayerRenderer
