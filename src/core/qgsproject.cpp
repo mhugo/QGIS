@@ -36,6 +36,7 @@
 #include "qgsrectangle.h"
 #include "qgsrelationmanager.h"
 #include "qgsvectorlayer.h"
+#include "qgslabellayer.h"
 
 #include <QApplication>
 #include <QFileInfo>
@@ -713,6 +714,10 @@ bool QgsProject::addLayer( const QDomElement &layerElem, QList<QDomNode> &broken
   {
     QString typeName = layerElem.attribute( "name" );
     mapLayer = QgsPluginLayerRegistry::instance()->createLayer( typeName );
+  }
+  else if ( type == "label" )
+  {
+    mapLayer = new QgsLabelLayer();
   }
 
   if ( !mapLayer )

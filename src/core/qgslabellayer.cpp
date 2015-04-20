@@ -21,6 +21,7 @@
 #include "qgsmaplayerregistry.h"
 #include "qgsgeometry.h"
 #include "qgsdataitem.h"
+#include "qgsmessagelog.h"
 
 bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers )
 {
@@ -350,6 +351,25 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
 
   return !cancelled;
 }
+
+bool QgsLabelLayer::writeXml( QDomNode & layer_node,
+                              QDomDocument & )
+{
+  // first get the layer element so that we can append the type attribute
+
+  QDomElement mapLayerNode = layer_node.toElement();
+
+  if ( mapLayerNode.isNull() || "maplayer" != mapLayerNode.nodeName() )
+  {
+    QgsMessageLog::logMessage( tr( "<maplayer> not found." ), tr( "Label" ) );
+    return false;
+  }
+
+  mapLayerNode.setAttribute( "type", "label" );
+
+  return true;
+}
+
 
 class QgsLabelLayerRenderer : public QgsMapLayerRenderer
 {
