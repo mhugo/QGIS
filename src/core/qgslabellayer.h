@@ -16,6 +16,7 @@
 #define QGSLABELLAYER_H
 
 #include "qgsmaplayer.h"
+#include "qgsmaplayerlegend.h"
 
 class QgsLabelLayerCacheTest : public QObject
 {
@@ -94,6 +95,28 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     QScopedPointer<QImage> mCacheImage;
 
     bool mCacheEnabled;
+};
+
+
+/**
+ * Private class for label layer legend
+ */
+class QgsLabelLayerLegend : public QgsMapLayerLegend
+{
+  Q_OBJECT
+
+public:
+  QgsLabelLayerLegend( QgsLabelLayer* layer );
+
+  virtual QList<QgsLayerTreeModelLegendNode*> createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer ) override;
+
+private slots:
+  void onLayersAdded( QList<QgsMapLayer*> layers );
+  void onLayerRemoved( QString );
+  void onLabelLayerChanged( const QString& oldLabel );
+
+private:
+  QgsLabelLayer* mLayer;
 };
 
 #endif // QGSLABELLAYER_H

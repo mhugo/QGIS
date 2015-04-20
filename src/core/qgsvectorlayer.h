@@ -1665,6 +1665,12 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer
      */
     void writeCustomSymbology( QDomElement& element, QDomDocument& doc, QString& errorMessage ) const;
 
+    /**
+     * Signal emitted when the label layer is changed, through setLabelLayer()
+     * @param oldLabelLayer the previous label layer name, before the change occured
+     */
+    void labelLayerChanged( const QString& oldLabelLayer ) const;
+
   private slots:
     void onRelationsLoaded();
     void onJoinedFieldsChanged();

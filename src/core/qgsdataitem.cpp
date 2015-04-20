@@ -94,6 +94,16 @@ const QIcon &QgsLayerItem::iconRaster()
   return icon;
 }
 
+const QIcon &QgsLayerItem::iconLabel()
+{
+  static QIcon icon;
+
+  if ( icon.isNull() )
+    icon = QgsApplication::getThemeIcon( "/mIconLabelLayer.svg" );
+
+  return icon;
+}
+
 const QIcon &QgsLayerItem::iconDefault()
 {
   static QIcon icon;

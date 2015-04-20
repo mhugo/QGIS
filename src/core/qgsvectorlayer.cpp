@@ -3894,5 +3894,7 @@ QString QgsVectorLayer::labelLayer() const
 
 void QgsVectorLayer::setLabelLayer( QString labelLayerName )
 {
+  QString old = mLabelLayer;
   mLabelLayer = labelLayerName;
+  emit labelLayerChanged( old );
 }

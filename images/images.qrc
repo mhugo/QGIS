@@ -369,6 +369,7 @@
         <file>themes/default/mIconWms.svg</file>
         <file>themes/default/mIconZip.png</file>
         <file>themes/default/mIconZoom.svg</file>
+        <file>themes/default/mIconLabelLayer.svg</file>
         <file>themes/default/mMapserverExport.png</file>
         <file>themes/default/north_arrow.png</file>
         <file>themes/default/pie-chart.png</file>

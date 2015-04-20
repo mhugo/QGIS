@@ -14,13 +14,13 @@
  ***************************************************************************/
 #include "qgslabellayer.h"
 
-#include "qgsmaplayerlegend.h"
 #include "qgsmaplayerrenderer.h"
 #include "qgslayertreemodellegendnode.h"
 #include "qgspallabeling.h"
 #include "qgsvectordataprovider.h"
 #include "qgsmaplayerregistry.h"
 #include "qgsgeometry.h"
+#include "qgsdataitem.h"
 
 bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers )
 {
@@ -87,23 +87,113 @@ void QgsLabelLayerCacheTest::onRepaintLayer()
 }
 
 
-class QgsLabelLayerLegend : public QgsMapLayerLegend
+QgsLabelLayerLegend::QgsLabelLayerLegend( QgsLabelLayer* layer ) : QgsMapLayerLegend(), mLayer(layer)
 {
-public:
-  virtual QList<QgsLayerTreeModelLegendNode*> createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer ) override
-  {
-    QList<QgsLayerTreeModelLegendNode*> nodes;
+  // register new layer creatio / deletionn, to update the legend
+  connect( QgsMapLayerRegistry::instance(), SIGNAL( legendLayersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
 
-    nodes << new QgsSimpleLegendNode( nodeLayer, "Labels" );
-    return nodes;
+  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
+  {
+    if ( ml->type() != QgsMapLayer::VectorLayer )
+    {
+      continue;
+    }
+
+    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
+    // register to label layer change
+    connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    // register to the deletion
+    connect( QgsMapLayerRegistry::instance(), SIGNAL( layerRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
   }
-};
+}
+
+QList<QgsLayerTreeModelLegendNode*> QgsLabelLayerLegend::createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer )
+{
+  QList<QgsLayerTreeModelLegendNode*> nodes;
+
+  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() ) {
+    if ( ml->type() != QgsMapLayer::VectorLayer ) {
+      continue;
+    }
+    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
+
+    if ( !vl->labelLayer().isEmpty() && mLayer->id() == vl->labelLayer() )
+    {
+      QIcon icon;
+      if ( vl->geometryType() == QGis::Point )
+      {
+        icon = QgsLayerItem::iconPoint();
+      }
+      else if ( vl->geometryType() == QGis::Line )
+      {
+        icon = QgsLayerItem::iconLine();
+      }
+      else if ( vl->geometryType() == QGis::Polygon )
+      {
+        icon = QgsLayerItem::iconPolygon();
+      }
+      else
+      {
+        icon = QgsLayerItem::iconDefault();
+      }
+
+      QgsLayerTreeModelLegendNode* node = new QgsSimpleLegendNode( nodeLayer, vl->name(), icon );
+      nodes << node;
+    }
+
+  }
+  return nodes;
+}
+
+void QgsLabelLayerLegend::onLayersAdded( QList<QgsMapLayer*> layers )
+{
+  bool doEmit = false;
+  foreach( QgsMapLayer* ml, layers )
+  {
+    if ( ml->type() != QgsMapLayer::VectorLayer )
+    {
+      return;
+    }
+
+    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
+    if ( vl->labelLayer() == mLayer->id() )
+    {
+      doEmit = true;
+    }
+    // register to label layer change
+    connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    // register to the deletion
+    connect( QgsMapLayerRegistry::instance(), SIGNAL( layerRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
+  }
+  if (doEmit)
+  {
+    emit itemsChanged();
+  }
+}
+
+void QgsLabelLayerLegend::onLabelLayerChanged( const QString& oldLabel )
+{
+  QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(sender());
+  if ( oldLabel == mLayer->id() || vl->labelLayer() == mLayer->id() )
+  {
+    emit itemsChanged();
+  }
+}
+
+void QgsLabelLayerLegend::onLayerRemoved( QString layerId )
+{
+  // disconnect label layer change signal
+  QgsVectorLayer *vl = static_cast<QgsVectorLayer*>(QgsMapLayerRegistry::instance()->mapLayer( layerId ));
+  disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+
+  emit itemsChanged();
+}
 
 QgsLabelLayer::QgsLabelLayer( QString layerName )
   : QgsMapLayer( LabelLayer, layerName ),
     mCacheEnabled( false )
 {
-  setLegend( new QgsLabelLayerLegend() );
+  setLegend( new QgsLabelLayerLegend(this) );
   mValid = true;
 
   // invalidate cache when triggerRepaint is called, to be consistent with QgsMapLayer's behaviour

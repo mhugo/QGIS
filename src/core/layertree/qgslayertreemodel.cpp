@@ -200,6 +200,11 @@ QVariant QgsLayerTreeModel::data( const QModelIndex &index, int role ) const
         }
       }
 
+      if ( layer->type() == QgsMapLayer::LabelLayer )
+      {
+        return QgsLayerItem::iconLabel();
+      }
+
       QgsVectorLayer *vlayer = dynamic_cast<QgsVectorLayer*>( layer );
       QIcon icon;
 
