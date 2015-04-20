@@ -207,6 +207,7 @@
 #include "qgsmessagelogviewer.h"
 #include "qgsdataitem.h"
 #include "qgsmaplayeractionregistry.h"
+#include "qgslabellayer.h"
 
 #include "qgssublayersdialog.h"
 #include "ogr/qgsopenvectorlayerdialog.h"
@@ -1207,6 +1208,7 @@ void QgisApp::createActions()
   connect( mActionAddLayerDefinition, SIGNAL( triggered() ), this, SLOT( addLayerDefinition() ) );
   connect( mActionAddOgrLayer, SIGNAL( triggered() ), this, SLOT( addVectorLayer() ) );
   connect( mActionAddRasterLayer, SIGNAL( triggered() ), this, SLOT( addRasterLayer() ) );
+  connect( mActionAddLabelLayer, SIGNAL( triggered() ), this, SLOT( addLabelLayer() ) );
   connect( mActionAddPgLayer, SIGNAL( triggered() ), this, SLOT( addDatabaseLayer() ) );
   connect( mActionAddSpatiaLiteLayer, SIGNAL( triggered() ), this, SLOT( addSpatiaLiteLayer() ) );
   connect( mActionAddMssqlLayer, SIGNAL( triggered() ), this, SLOT( addMssqlLayer() ) );
@@ -1963,6 +1965,7 @@ void QgisApp::setTheme( QString theThemeName )
   mActionExit->setIcon( QgsApplication::getThemeIcon( "/mActionFileExit.png" ) );
   mActionAddOgrLayer->setIcon( QgsApplication::getThemeIcon( "/mActionAddOgrLayer.svg" ) );
   mActionAddRasterLayer->setIcon( QgsApplication::getThemeIcon( "/mActionAddRasterLayer.svg" ) );
+  mActionAddLabelLayer->setIcon( QgsApplication::getThemeIcon( "/mActionAddLabelLayer.svg" ) );
 #ifdef HAVE_POSTGRESQL
   mActionAddPgLayer->setIcon( QgsApplication::getThemeIcon( "/mActionAddPostgisLayer.svg" ) );
 #endif
@@ -9853,7 +9856,12 @@ QgsPluginLayer* QgisApp::addPluginLayer( const QString& uri, const QString& base
   return layer;
 }
 
+void QgisApp::addLabelLayer()
+{
+  QgsLabelLayer* layer = new QgsLabelLayer( tr("labels") );
 
+  QgsMapLayerRegistry::instance()->addMapLayer( layer );
+}
 
 #ifdef ANDROID
 void QgisApp::keyReleaseEvent( QKeyEvent *event )

@@ -675,6 +675,8 @@ class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
     void about();
     //! Add a raster layer to the map (will prompt user for file name using dlg )
     void addRasterLayer();
+    //! Add a label layer to the map
+    void addLabelLayer();
     //#ifdef HAVE_POSTGRESQL
     //! Add a databaselayer to the map
     void addDatabaseLayer();

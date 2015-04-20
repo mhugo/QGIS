@@ -137,6 +137,7 @@
      <property name="title">
       <string>Add Layer</string>
      </property>
+     <addaction name="mActionAddLabelLayer"/>
      <addaction name="mActionAddOgrLayer"/>
      <addaction name="mActionAddRasterLayer"/>
      <addaction name="mActionAddPgLayer"/>
@@ -313,6 +314,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="mActionAddLabelLayer"/>
    <addaction name="mActionAddOgrLayer"/>
    <addaction name="mActionAddRasterLayer"/>
    <addaction name="mActionAddPgLayer"/>
@@ -2281,6 +2283,15 @@ Acts on currently active editable layer</string>
    </property>
    <property name="toolTip">
     <string>New temporary scratch layer</string>
+   </property>
+  </action>
+  <action name="mActionAddLabelLayer">
+   <property name="icon">
+    <iconset resource="../../images/images.qrc">
+     <normaloff>:/images/themes/default/mActionAddLabelLayer.svg</normaloff>:/images/themes/default/mActionAddLabelLayer.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Add Label Layer</string>
    </property>
   </action>
  </widget>

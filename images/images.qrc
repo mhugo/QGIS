@@ -118,6 +118,7 @@
         <file>themes/default/mActionAddPostgisLayer.svg</file>
         <file>themes/default/mActionAddPart.png</file>
         <file>themes/default/mActionAddRasterLayer.svg</file>
+        <file>themes/default/mActionAddLabelLayer.svg</file>
         <file>themes/default/mActionAddRing.png</file>
         <file>themes/default/mActionAddSpatiaLiteLayer.svg</file>
         <file>themes/default/mActionAddVertex.png</file>

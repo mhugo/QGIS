@@ -494,7 +494,7 @@
               <item>
                <widget class="QStackedWidget" name="mLabelStackedWidget">
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>6</number>
                 </property>
                 <widget class="QWidget" name="mLabelPage_Text">
                  <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -523,9 +523,9 @@
                      <property name="geometry">
                       <rect>
                        <x>0</x>
-                       <y>-11</y>
+                       <y>0</y>
                        <width>566</width>
-                       <height>390</height>
+                       <height>388</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -594,7 +594,7 @@
                              <property name="maximum">
                               <double>999999999.000000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>true</bool>
                              </property>
                             </widget>
@@ -628,7 +628,7 @@
                            <property name="maximum">
                             <double>999999999.000000000000000</double>
                            </property>
-                           <property name="showClearButton">
+                           <property name="showClearButton" stdset="0">
                             <bool>false</bool>
                            </property>
                           </widget>
@@ -930,7 +930,7 @@
                              <property name="maximum">
                               <double>999999999.000000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>true</bool>
                              </property>
                             </widget>
@@ -1237,9 +1237,9 @@ font-style: italic;</string>
                      <property name="geometry">
                       <rect>
                        <x>0</x>
-                       <y>-13</y>
+                       <y>0</y>
                        <width>566</width>
-                       <height>392</height>
+                       <height>389</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -1978,7 +1978,7 @@ font-style: italic;</string>
                              <property name="singleStep">
                               <double>0.100000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -2198,9 +2198,9 @@ font-style: italic;</string>
                      <property name="geometry">
                       <rect>
                        <x>0</x>
-                       <y>-321</y>
+                       <y>0</y>
                        <width>566</width>
-                       <height>700</height>
+                       <height>697</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_21">
@@ -2380,7 +2380,7 @@ font-style: italic;</string>
                              <property name="maximum">
                               <double>9999999.000000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -2618,7 +2618,7 @@ font-style: italic;</string>
                              <property name="maximum">
                               <double>9999999.000000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -2665,7 +2665,7 @@ font-style: italic;</string>
                              <property name="maximum">
                               <double>9999999.000000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -2980,9 +2980,9 @@ font-style: italic;</string>
                      <property name="geometry">
                       <rect>
                        <x>0</x>
-                       <y>-48</y>
-                       <width>566</width>
-                       <height>427</height>
+                       <y>0</y>
+                       <width>325</width>
+                       <height>424</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -3078,7 +3078,7 @@ font-style: italic;</string>
                              <property name="maximum">
                               <double>999999999.990000009536743</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -3121,7 +3121,7 @@ font-style: italic;</string>
                              <property name="maximum">
                               <double>9999999.000000000000000</double>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -3189,7 +3189,7 @@ font-style: italic;</string>
                                <property name="maximum">
                                 <number>180</number>
                                </property>
-                               <property name="showClearButton">
+                               <property name="showClearButton" stdset="0">
                                 <bool>false</bool>
                                </property>
                               </widget>
@@ -3244,7 +3244,7 @@ font-style: italic;</string>
                              <property name="value">
                               <number>100</number>
                              </property>
-                             <property name="showClearButton">
+                             <property name="showClearButton" stdset="0">
                               <bool>false</bool>
                              </property>
                             </widget>
@@ -3458,9 +3458,9 @@ font-style: italic;</string>
                      <property name="geometry">
                       <rect>
                        <x>0</x>
-                       <y>-454</y>
+                       <y>0</y>
                        <width>566</width>
-                       <height>833</height>
+                       <height>831</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -4409,7 +4409,7 @@ font-style: italic;</string>
                            <property name="maximum">
                             <double>60.000000000000000</double>
                            </property>
-                           <property name="showClearButton">
+                           <property name="showClearButton" stdset="0">
                             <bool>false</bool>
                            </property>
                           </widget>
@@ -4445,7 +4445,7 @@ font-style: italic;</string>
                            <property name="maximum">
                             <double>95.000000000000000</double>
                            </property>
-                           <property name="showClearButton">
+                           <property name="showClearButton" stdset="0">
                             <bool>false</bool>
                            </property>
                           </widget>
@@ -4487,7 +4487,7 @@ font-style: italic;</string>
                         <property name="flat">
                          <bool>false</bool>
                         </property>
-                        <property name="syncGroup">
+                        <property name="syncGroup" stdset="0">
                          <string notr="true">labelplacementgroup</string>
                         </property>
                         <layout class="QGridLayout" name="gridLayout_4">
@@ -4672,7 +4672,7 @@ font-style: italic;</string>
                         <property name="title">
                          <string>Priority</string>
                         </property>
-                        <property name="syncGroup">
+                        <property name="syncGroup" stdset="0">
                          <string notr="true">labelplacementgroup</string>
                         </property>
                         <layout class="QHBoxLayout" name="horizontalLayout_9">
@@ -4766,7 +4766,7 @@ font-style: italic;</string>
                        <x>0</x>
                        <y>0</y>
                        <width>566</width>
-                       <height>617</height>
+                       <height>657</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -4784,16 +4784,28 @@ font-style: italic;</string>
                         <property name="title">
                          <string>Label options</string>
                         </property>
-                        <property name="syncGroup">
+                        <property name="syncGroup" stdset="0">
                          <string notr="true">labelrenderinggroup</string>
                         </property>
                         <layout class="QVBoxLayout" name="verticalLayout_16">
-                         <property name="leftMargin">
-                          <number>8</number>
-                         </property>
-                         <property name="rightMargin">
-                          <number>8</number>
-                         </property>
+                         <item>
+                          <layout class="QHBoxLayout" name="horizontalLayout_11">
+                           <item>
+                            <widget class="QCheckBox" name="mUseLabelLayerChkBox">
+                             <property name="text">
+                              <string>Use a label layer</string>
+                             </property>
+                            </widget>
+                           </item>
+                           <item>
+                            <widget class="QComboBox" name="mLabelLayerCmbBox">
+                             <property name="enabled">
+                              <bool>false</bool>
+                             </property>
+                            </widget>
+                           </item>
+                          </layout>
+                         </item>
                          <item>
                           <layout class="QGridLayout" name="gridLayout_9">
                            <property name="verticalSpacing">
@@ -4873,7 +4885,7 @@ font-style: italic;</string>
                                 <property name="maximum">
                                  <number>999999999</number>
                                 </property>
-                                <property name="showClearButton">
+                                <property name="showClearButton" stdset="0">
                                  <bool>false</bool>
                                 </property>
                                </widget>
@@ -4908,7 +4920,7 @@ font-style: italic;</string>
                                 <property name="value">
                                  <number>10000000</number>
                                 </property>
-                                <property name="showClearButton">
+                                <property name="showClearButton" stdset="0">
                                  <bool>false</bool>
                                 </property>
                                </widget>
@@ -5010,7 +5022,7 @@ font-style: italic;</string>
                                 <property name="value">
                                  <number>3</number>
                                 </property>
-                                <property name="showClearButton">
+                                <property name="showClearButton" stdset="0">
                                  <bool>false</bool>
                                 </property>
                                </widget>
@@ -5048,7 +5060,7 @@ font-style: italic;</string>
                                 <property name="value">
                                  <number>10000</number>
                                 </property>
-                                <property name="showClearButton">
+                                <property name="showClearButton" stdset="0">
                                  <bool>false</bool>
                                 </property>
                                </widget>
@@ -5255,6 +5267,13 @@ font-style: italic;</string>
                           </widget>
                          </item>
                         </layout>
+                        <zorder>line_2</zorder>
+                        <zorder>mPalShowAllLabelsForLayerChkBx</zorder>
+                        <zorder>mLabelRenderingDDFrame</zorder>
+                        <zorder>mUpsidedownFrame</zorder>
+                        <zorder>mLabelLayerCmbBox</zorder>
+                        <zorder>mUseLabelLayerChkBox</zorder>
+                        <zorder>mLabelLayerCmbBox</zorder>
                        </widget>
                       </item>
                       <item>
@@ -5262,7 +5281,7 @@ font-style: italic;</string>
                         <property name="title">
                          <string>Feature options</string>
                         </property>
-                        <property name="syncGroup">
+                        <property name="syncGroup" stdset="0">
                          <string notr="true">labelrenderinggroup</string>
                         </property>
                         <layout class="QVBoxLayout" name="verticalLayout">
@@ -5328,7 +5347,7 @@ font-style: italic;</string>
                               <property name="value">
                                <number>2000</number>
                               </property>
-                              <property name="showClearButton">
+                              <property name="showClearButton" stdset="0">
                                <bool>false</bool>
                               </property>
                              </widget>
@@ -5444,7 +5463,7 @@ font-style: italic;</string>
        </widget>
       </item>
       <item>
-       <widget class="QgsFieldExpressionWidget" name="mFieldExpressionWidget">
+       <widget class="QgsFieldExpressionWidget" name="mFieldExpressionWidget" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
           <horstretch>0</horstretch>
