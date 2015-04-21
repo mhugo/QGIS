@@ -78,6 +78,7 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
       return true;
     }
 
+    bool readXml( const QDomNode & layer_node ) override;
     bool writeXml( QDomNode & layer_node, QDomDocument & document ) override;
 
     bool cacheEnabled() const;

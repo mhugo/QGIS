@@ -366,10 +366,27 @@ bool QgsLabelLayer::writeXml( QDomNode & layer_node,
   }
 
   mapLayerNode.setAttribute( "type", "label" );
+  mapLayerNode.setAttribute( "cacheEnabled", mCacheEnabled ? "true" : "false" );
 
   return true;
 }
 
+bool QgsLabelLayer::readXml( const QDomNode & layer_node )
+{
+  // first get the layer element so that we can append the type attribute
+
+  QDomElement mapLayerNode = layer_node.toElement();
+
+  if ( mapLayerNode.isNull() || "maplayer" != mapLayerNode.nodeName() )
+  {
+    QgsMessageLog::logMessage( tr( "<maplayer> not found." ), tr( "Label" ) );
+    return false;
+  }
+
+  mCacheEnabled = mapLayerNode.attribute("cacheEnabled") == "true";
+
+  return true;
+}
 
 class QgsLabelLayerRenderer : public QgsMapLayerRenderer
 {
