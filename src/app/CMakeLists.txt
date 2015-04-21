@@ -114,6 +114,7 @@ SET(QGIS_APP_SRCS
   qgsvectorlayerproperties.cpp
   qgsvisibilitypresets.cpp
   qgshandlebadlayers.cpp
+  qgslabellayerproperties.cpp
 
   composer/qgsattributeselectiondialog.cpp
   composer/qgscomposer.cpp
@@ -256,6 +257,7 @@ SET (QGIS_APP_MOC_HDRS
   qgsvectorlayerproperties.h
   qgsvisibilitypresets.h
   qgshandlebadlayers.h
+  qgslabellayerproperties.h
 
   composer/qgsattributeselectiondialog.h
   composer/qgscomposer.h

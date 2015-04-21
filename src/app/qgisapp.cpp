@@ -208,6 +208,7 @@
 #include "qgsdataitem.h"
 #include "qgsmaplayeractionregistry.h"
 #include "qgslabellayer.h"
+#include "qgslabellayerproperties.h"
 
 #include "qgssublayersdialog.h"
 #include "ogr/qgsopenvectorlayerdialog.h"
@@ -10171,6 +10172,12 @@ void QgisApp::showLayerProperties( QgsMapLayer *ml )
       activateDeactivateLayerRelatedActions( ml );
     }
     delete vlp; // delete since dialog cannot be reused without updating code
+  }
+  else if ( ml->type() == QgsMapLayer::LabelLayer )
+  {
+    QgsLabelLayer* ll = qobject_cast<QgsLabelLayer*>(ml);
+    QScopedPointer<QgsLabelLayerProperties> llp( new QgsLabelLayerProperties( ll, this ) );
+    llp->exec();
   }
   else if ( ml->type() == QgsMapLayer::PluginLayer )
   {
