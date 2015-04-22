@@ -400,8 +400,13 @@ QStringList QgsCategorizedSymbolRendererV2::filterReferencedColumns() const
   return l;
 }
 
-bool QgsCategorizedSymbolRendererV2::prepareFilter( const QgsRenderContext&, const QgsFields& fields )
+bool QgsCategorizedSymbolRendererV2::prepareFilter( const QgsRenderContext& context, const QgsFields& fields )
 {
+  mCounting = context.rendererScale() == 0.0;
+
+  // make sure that the hash table is up to date
+  rebuildHash();
+
   // find out classification attribute index from name
   mAttrNum = fields.fieldNameIndex( mAttrName );
   if ( mAttrNum == -1 )
@@ -414,11 +419,6 @@ bool QgsCategorizedSymbolRendererV2::prepareFilter( const QgsRenderContext&, con
 
 void QgsCategorizedSymbolRendererV2::startRender( QgsRenderContext& context, const QgsFields& fields )
 {
-  mCounting = context.rendererScale() == 0.0;
-
-  // make sure that the hash table is up to date
-  rebuildHash();
-
   prepareFilter( context, fields );
 
   QgsCategoryList::iterator it = mCategories.begin();

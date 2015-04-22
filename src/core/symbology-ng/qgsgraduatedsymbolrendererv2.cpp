@@ -373,8 +373,10 @@ QStringList QgsGraduatedSymbolRendererV2::filterReferencedColumns() const
   return l;
 }
 
-bool QgsGraduatedSymbolRendererV2::prepareFilter( const QgsRenderContext&, const QgsFields& fields )
+bool QgsGraduatedSymbolRendererV2::prepareFilter( const QgsRenderContext& context, const QgsFields& fields )
 {
+  mCounting = context.rendererScale() == 0.0;
+
   // find out classification attribute index from name
   mAttrNum = fields.fieldNameIndex( mAttrName );
 
@@ -388,8 +390,6 @@ bool QgsGraduatedSymbolRendererV2::prepareFilter( const QgsRenderContext&, const
 
 void QgsGraduatedSymbolRendererV2::startRender( QgsRenderContext& context, const QgsFields& fields )
 {
-  mCounting = context.rendererScale() == 0.0;
-
   prepareFilter( context, fields );
 
   QgsRangeList::iterator it = mRanges.begin();

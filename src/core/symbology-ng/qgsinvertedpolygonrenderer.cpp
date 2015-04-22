@@ -445,6 +445,24 @@ QgsLegendSymbolList QgsInvertedPolygonRenderer::legendSymbolItems( double scaleD
   return mSubRenderer->legendSymbolItems( scaleDenominator, rule );
 }
 
+QStringList QgsInvertedPolygonRenderer::filterReferencedColumns() const
+{
+  if ( mSubRenderer )
+  {
+    return mSubRenderer->filterReferencedColumns();
+  }
+  return QStringList();
+}
+
+bool QgsInvertedPolygonRenderer::prepareFilter( const QgsRenderContext& context, const QgsFields& fields )
+{
+  if ( mSubRenderer )
+  {
+    return mSubRenderer->prepareFilter( context, fields );
+  }
+  return true;
+}
+
 bool QgsInvertedPolygonRenderer::willRenderFeature( QgsFeature& feat )
 {
   if ( !mSubRenderer )
