@@ -22,6 +22,8 @@
 #include "qgsgeometry.h"
 #include "qgsdataitem.h"
 #include "qgsmessagelog.h"
+#include "diagram/qgsdiagram.h"
+#include "symbology-ng/qgsrendererv2.h"
 
 bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers )
 {
@@ -229,25 +231,68 @@ QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
   return &mainLayer;
 }
 
-// local exception class used by vectorLayer()
-struct CancelRendering {};
-
-// local function that will throw when the given layer does not exist anymore
-QgsVectorLayer* vectorLayer( const QString& lid )
+void QgsLabelLayer::prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames, QgsLabelingEngineInterface* labelingEngine )
 {
-  QgsMapLayer* ml = QgsMapLayerRegistry::instance()->mapLayer( lid );
-  if ( !ml )
+  if ( !layer->diagramRenderer() || !layer->diagramLayerSettings() )
+    return;
+
+  const QgsDiagramRendererV2* diagRenderer = layer->diagramRenderer();
+  const QgsDiagramLayerSettings* diagSettings = layer->diagramLayerSettings();
+
+  QgsFields fields = layer->pendingFields();
+
+  labelingEngine->addDiagramLayer( layer, diagSettings ); // will make internal copy of diagSettings + initialize it
+
+  //add attributes needed by the diagram renderer
+  QList<QString> att = diagRenderer->diagramAttributes();
+  QList<QString>::const_iterator attIt = att.constBegin();
+  for ( ; attIt != att.constEnd(); ++attIt )
   {
-    throw CancelRendering();
+    QgsExpression* expression = diagRenderer->diagram()->getExpression( *attIt, &fields );
+    QStringList columns = expression->referencedColumns();
+    QStringList::const_iterator columnsIterator = columns.constBegin();
+    for ( ; columnsIterator != columns.constEnd(); ++columnsIterator )
+    {
+      if ( !attributeNames.contains( *columnsIterator ) )
+        attributeNames << *columnsIterator;
+    }
   }
-  return static_cast<QgsVectorLayer*>(ml);
+
+  const QgsLinearlyInterpolatedDiagramRenderer* linearlyInterpolatedDiagramRenderer = dynamic_cast<const QgsLinearlyInterpolatedDiagramRenderer*>( layer->diagramRenderer() );
+  if ( linearlyInterpolatedDiagramRenderer != NULL )
+  {
+    if ( linearlyInterpolatedDiagramRenderer->classificationAttributeIsExpression() )
+    {
+      QgsExpression* expression = diagRenderer->diagram()->getExpression( linearlyInterpolatedDiagramRenderer->classificationAttributeExpression(), &fields );
+      QStringList columns = expression->referencedColumns();
+      QStringList::const_iterator columnsIterator = columns.constBegin();
+      for ( ; columnsIterator != columns.constEnd(); ++columnsIterator )
+      {
+        if ( !attributeNames.contains( *columnsIterator ) )
+          attributeNames << *columnsIterator;
+      }
+    }
+    else
+    {
+      QString name = fields.at( linearlyInterpolatedDiagramRenderer->classificationAttribute() ).name();
+      if ( !attributeNames.contains( name ) )
+        attributeNames << name;
+    }
+  }
+
+  //and the ones needed for data defined diagram positions
+  if ( diagSettings->xPosColumn != -1 )
+    attributeNames << fields.at( diagSettings->xPosColumn ).name();
+  if ( diagSettings->yPosColumn != -1 )
+    attributeNames << fields.at( diagSettings->yPosColumn ).name();
 }
 
 bool QgsLabelLayer::draw( QgsRenderContext& context )
 {
   bool cancelled = false;
 
-  if ( !context.labelingEngine() ) {
+  if ( !context.labelingEngine() )
+  {
     return false;
   }
   // QgsPalLabeling does not seem to be designed to be reused, so use a local copy
@@ -255,19 +300,19 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
 
   bool nothingToLabel = true;
   QSet<QgsVectorLayer*> layersToTest;
-  QSet<QString> layersIdToTest;
-  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() ) {
-    if ( ml->type() != QgsMapLayer::VectorLayer ) {
+  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
+  {
+    if ( ml->type() != QgsMapLayer::VectorLayer )
+    {
       continue;
     }
     QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
 
     if ( ((vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
           (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() )) &&
-         pal->willUseLayer( vl ) )
+         (pal->willUseLayer( vl ) || (vl->diagramRenderer() && vl->diagramLayerSettings())) )
     {
       layersToTest << vl;
-      layersIdToTest << vl->id();
     }
 
     if ( context.renderingStopped() )
@@ -278,10 +323,12 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
 
   QImage* img = dynamic_cast<QImage*>( context.painter()->device() );
   QPainter* oldPainter = context.painter();
-  QPainter* imgPainter = 0;
-  if ( mCacheEnabled && img ) {
+  QScopedPointer<QPainter> imgPainter;
+  if ( mCacheEnabled && img )
+  {
     std::cout << "device is an image" << std::endl;
-    if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) ) {
+    if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) )
+    {
       // we have a cache image, use it
       std::cout << "use cache image" << std::endl;
       context.painter()->drawImage( QPoint(0,0), *mCacheImage );
@@ -289,60 +336,111 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     }
     mCacheImage.reset( new QImage( img->width(), img->height(), img->format() ) );
     mCacheImage->fill( QColor(0,0,0,0) );
-    imgPainter = new QPainter( mCacheImage.data() );
-    context.setPainter( imgPainter );
+    imgPainter.reset( new QPainter( mCacheImage.data() ) );
+    context.setPainter( imgPainter.data() );
   }
 
   // draw labels
-  try
+  foreach( QgsVectorLayer* vl, layersToTest )
   {
-    foreach( const QString& vlid, layersIdToTest )
+    bool hasLabels = false;
+    bool hasDiagrams = false;
+    // we call vectorLayer(vlid) each time the vector layer is needed
+    // it will then throw an exception if the layer has been deleted by another thread
+    // and allows to cancel the rendering
+    QStringList attrNames;
+    if ( pal->willUseLayer( vl ) )
     {
-      // we call vectorLayer(vlid) each time the vector layer is needed
-      // it will then throw an exception if the layer has been deleted by another thread
-      // and allows to cancel the rendering
-      QStringList attrNames;
-      pal->prepareLayer( vectorLayer(vlid), attrNames, context );
+      hasLabels = true;
+      pal->prepareLayer( vl, attrNames, context );
+    }
 
-      QgsFeature fet;
-      // a label layer has no CRS per se (it refers multiple layers), so we need to access labeling settings
-      QgsPalLayerSettings& plyr = pal->layer( vlid );
-      QgsRectangle dataExtent;
-      if ( plyr.ct )
-      {
-        dataExtent = plyr.ct->transformBoundingBox( context.extent(), QgsCoordinateTransform::ReverseTransform );
-      }
-      else
-      {
-        dataExtent = context.extent();
-      }
-      QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( dataExtent ).setSubsetOfAttributes( attrNames, vectorLayer(vlid)->dataProvider()->fields() );
+    if ( vl->diagramRenderer() && vl->diagramLayerSettings() )
+    {
+      hasDiagrams = true;
+      prepareDiagrams( vl, attrNames, pal.data() );
+    }
 
-      QgsFeatureIterator fit = vectorLayer(vlid)->getFeatures( req );
-      while ( fit.nextFeature( fet ) ) {
-        if ( context.renderingStopped() )
+    QgsFeatureRendererV2* renderer = vl->rendererV2();
+    bool filterRendering = renderer->capabilities() & QgsFeatureRendererV2::Filter;
+
+    if ( filterRendering )
+    {
+      // add attributes used for filtering
+      foreach( const QString& attr, renderer->filterReferencedColumns() )
+      {
+        if ( !attrNames.contains(attr) )
         {
-          throw CancelRendering();
+          attrNames << attr;
         }
-
-        nothingToLabel = false;
-        pal->registerFeature( vectorLayer(vlid)->id(), // makes sure the layer still exists
-                              fet,
-                              context );
+      }
+      if (!renderer->prepareFilter( context, vl->pendingFields() )) {
+        std::cout << "PROBLEM preparing filter" << std::endl;
       }
     }
-  }
-  catch ( CancelRendering& )
-  {
-    cancelled = true;
+
+    foreach( const QString& attr, attrNames )
+    {
+      std::cout << "attribute: " << attr.toUtf8().constData() << std::endl;
+    }
+
+    QgsFeature fet;
+    // a label layer has no CRS per se (it refers multiple layers), so we need to access labeling settings
+    QgsPalLayerSettings& plyr = pal->layer( vl->id() );
+    QgsRectangle dataExtent;
+    if ( plyr.ct )
+    {
+      dataExtent = plyr.ct->transformBoundingBox( context.extent(), QgsCoordinateTransform::ReverseTransform );
+    }
+    else
+    {
+      dataExtent = context.extent();
+    }
+    QgsFeatureRequest req = QgsFeatureRequest().setFilterRect( dataExtent ).setSubsetOfAttributes( attrNames, vl->pendingFields() );
+
+    QgsFeatureIterator fit = vl->getFeatures( req );
+    while ( fit.nextFeature( fet ) )
+    {
+      if ( context.renderingStopped() )
+      {
+        cancelled = true;
+        break;
+      }
+
+      // for symbol levels, test that this feature is actually drawn
+      if ( filterRendering && ! renderer->willRenderFeature(fet) )
+      {
+        continue;
+      }
+
+      nothingToLabel = false;
+      if ( hasLabels )
+      {
+        pal->registerFeature( vl->id(), fet, context );
+      }
+
+      // diagram features
+      if ( hasDiagrams )
+      {
+        pal->registerDiagramFeature( vl->id(), fet, context );
+      }
+    }
+
+    if ( context.renderingStopped() )
+    {
+      cancelled = true;
+      break;
+    }
   }
 
-  if ( !cancelled && !nothingToLabel ) {
+  if ( !cancelled && !nothingToLabel )
+  {
     pal->drawLabeling( context );
     pal->exit();
   }
 
-  if ( mCacheEnabled && img) {
+  if ( !imgPainter.isNull() )
+  {
     // restore painter
     imgPainter->end();
     context.setPainter( oldPainter );

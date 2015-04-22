@@ -7097,6 +7097,8 @@ void QgisApp::removingLayers( QStringList theLayers )
 
 void QgisApp::removeAllLayers()
 {
+  // finish the current rendering, if any
+  mMapCanvas->stopRendering();
   QgsMapLayerRegistry::instance()->removeAllMapLayers();
 }
 
@@ -7131,6 +7133,9 @@ void QgisApp::removeLayer()
   {
     return;
   }
+
+  // finish the current rendering, if any
+  mMapCanvas->stopRendering();
 
   foreach ( QgsLayerTreeNode* node, selectedNodes )
   {

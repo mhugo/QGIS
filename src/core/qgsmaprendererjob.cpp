@@ -207,7 +207,9 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
       if ( mCache && vl->isEditable() )
         mCache->clearCacheImage( ml->id() );
 
-      if ( !needMainLabelLayer && labelingEngine && labelingEngine->willUseLayer( vl ) && vl->labelLayer().isEmpty() )
+      if ( !needMainLabelLayer &&
+           ( (labelingEngine && labelingEngine->willUseLayer( vl )) || (vl->diagramRenderer() && vl->diagramLayerSettings()) ) &&
+           vl->labelLayer().isEmpty() )
       {
         needMainLabelLayer = true;
       }

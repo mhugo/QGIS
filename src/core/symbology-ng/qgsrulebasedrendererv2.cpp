@@ -387,6 +387,56 @@ void QgsRuleBasedRendererV2::Rule::toSld( QDomDocument& doc, QDomElement &elemen
   }
 }
 
+void QgsRuleBasedRendererV2::Rule::filterReferencedColumns( QStringList& l ) const
+{
+  if ( mFilter )
+  {
+    foreach( const QString& f, mFilter->referencedColumns() )
+    {
+      if ( !l.contains(f) )
+      {
+        l << f;
+      }
+    }
+  }
+
+  for ( RuleList::const_iterator it = mChildren.begin(); it != mChildren.end(); ++it )
+  {
+    Rule* rule = *it;
+    rule->filterReferencedColumns( l );
+  }
+}
+
+bool QgsRuleBasedRendererV2::Rule::prepareFilter( const QgsRenderContext& context, const QgsFields& fields )
+{
+  // will prepare filter as well as active rules
+  mActiveChildren.clear();
+
+  if ( ! mCheckState )
+    return false;
+
+  // filter out rules which are not compatible with this scale
+  if ( !isScaleOK( context.rendererScale() ) )
+    return false;
+
+  // init this rule
+  if ( mFilter )
+    mFilter->prepare( fields );
+
+  // init children
+  // build temporary list of active rules (usable with this scale)
+  for ( RuleList::iterator it = mChildren.begin(); it != mChildren.end(); ++it )
+  {
+    Rule* rule = *it;
+    if ( rule->prepareFilter( context, fields ) )
+    {
+      // only add those which are active with current scale
+      mActiveChildren.append( rule );
+    }
+  }
+  return true;
+}
+
 bool QgsRuleBasedRendererV2::Rule::startRender( QgsRenderContext& context, const QgsFields& fields )
 {
   mActiveChildren.clear();
@@ -776,6 +826,17 @@ bool QgsRuleBasedRendererV2::renderFeature( QgsFeature& feature,
   return mRootRule->renderFeature( mCurrentFeatures.last(), context, mRenderQueue );
 }
 
+QStringList QgsRuleBasedRendererV2::filterReferencedColumns() const
+{
+  QStringList l;
+  mRootRule->filterReferencedColumns( l );
+  return l;
+}
+
+bool QgsRuleBasedRendererV2::prepareFilter( const QgsRenderContext& context, const QgsFields& fields )
+{
+  return mRootRule->prepareFilter( context, fields );
+}
 
 void QgsRuleBasedRendererV2::startRender( QgsRenderContext& context, const QgsFields& fields )
 {

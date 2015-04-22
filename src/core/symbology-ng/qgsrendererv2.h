@@ -195,8 +195,15 @@ class CORE_EXPORT QgsFeatureRendererV2
     //! sets rotation field of renderer (if supported by the renderer)
     virtual void setRotationField( QString fieldName ) { Q_UNUSED( fieldName ); }
 
+    //! For renderers that have a Filter capability, get the referenced columns of the filter
+    virtual QStringList filterReferencedColumns() const { return QStringList(); }
+
+    //! For renderers that have a Filter capability, prepare the filter
+    //! This can be used to call willRenderFeature outside of startRender() and stopRender()
+    //! @param fields where to look for attribute indexes
+    virtual bool prepareFilter( const QgsRenderContext& context, const QgsFields& fields ) { Q_UNUSED( context ); Q_UNUSED( fields ); return true; }
+
     //! return whether the renderer will render a feature or not.
-    //! Must be called between startRender() and stopRender() calls.
     //! Default implementation uses symbolForFeature().
     virtual bool willRenderFeature( QgsFeature& feat ) { return symbolForFeature( feat ) != NULL; }
 

@@ -134,6 +134,10 @@ class CORE_EXPORT QgsRuleBasedRendererV2 : public QgsFeatureRendererV2
 
         QDomElement save( QDomDocument& doc, QgsSymbolV2Map& symbolMap );
 
+        void filterReferencedColumns( QStringList& ) const;
+
+        bool prepareFilter( const QgsRenderContext& context, const QgsFields& fields );
+
         //! prepare the rule for rendering and its children (build active children array)
         bool startRender( QgsRenderContext& context, const QgsFields& fields );
         //! get all used z-levels from this rule and children
@@ -219,6 +223,10 @@ class CORE_EXPORT QgsRuleBasedRendererV2 : public QgsFeatureRendererV2
     virtual QgsSymbolV2* symbolForFeature( QgsFeature& feature ) override;
 
     virtual bool renderFeature( QgsFeature& feature, QgsRenderContext& context, int layer = -1, bool selected = false, bool drawVertexMarker = false ) override;
+
+    virtual QStringList filterReferencedColumns() const override;
+
+    virtual bool prepareFilter( const QgsRenderContext& context, const QgsFields& fields ) override;
 
     virtual void startRender( QgsRenderContext& context, const QgsFields& fields ) override;
 

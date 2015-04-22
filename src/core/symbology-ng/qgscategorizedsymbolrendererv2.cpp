@@ -393,6 +393,25 @@ void QgsCategorizedSymbolRendererV2::sortByLabel( Qt::SortOrder order )
   }
 }
 
+QStringList QgsCategorizedSymbolRendererV2::filterReferencedColumns() const
+{
+  QStringList l;
+  l << mAttrName;
+  return l;
+}
+
+bool QgsCategorizedSymbolRendererV2::prepareFilter( const QgsRenderContext&, const QgsFields& fields )
+{
+  // find out classification attribute index from name
+  mAttrNum = fields.fieldNameIndex( mAttrName );
+  if ( mAttrNum == -1 )
+  {
+    mExpression.reset( new QgsExpression( mAttrName ) );
+    return mExpression->prepare( fields );
+  }
+  return true;
+}
+
 void QgsCategorizedSymbolRendererV2::startRender( QgsRenderContext& context, const QgsFields& fields )
 {
   mCounting = context.rendererScale() == 0.0;
@@ -400,13 +419,7 @@ void QgsCategorizedSymbolRendererV2::startRender( QgsRenderContext& context, con
   // make sure that the hash table is up to date
   rebuildHash();
 
-  // find out classification attribute index from name
-  mAttrNum = fields.fieldNameIndex( mAttrName );
-  if ( mAttrNum == -1 )
-  {
-    mExpression.reset( new QgsExpression( mAttrName ) );
-    mExpression->prepare( fields );
-  }
+  prepareFilter( context, fields );
 
   QgsCategoryList::iterator it = mCategories.begin();
   for ( ; it != mCategories.end(); ++it )

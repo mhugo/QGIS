@@ -91,6 +91,8 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     void invalidateCache();
 
  private:
+    void prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames, QgsLabelingEngineInterface* labelingEngine );
+
     QVector<QgsVectorLayer*> mLayers;
 
     QgsLabelLayerCacheTest mCacheTest;

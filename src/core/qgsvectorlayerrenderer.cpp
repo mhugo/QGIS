@@ -94,7 +94,7 @@ QgsVectorLayerRenderer::QgsVectorLayerRenderer( QgsVectorLayer* layer, QgsRender
 
   //register label and diagram layer to the labeling engine
   //  prepareLabeling( layer, mAttrNames );
-  prepareDiagrams( layer, mAttrNames );
+  //  prepareDiagrams( layer, mAttrNames );
 
 }
 
@@ -281,7 +281,7 @@ void QgsVectorLayerRenderer::drawRendererV2( QgsFeatureIterator& fit )
         }
         if ( mDiagrams )
         {
-          mContext.labelingEngine()->registerDiagramFeature( mLayerID, fet, mContext );
+          //mContext.labelingEngine()->registerDiagramFeature( mLayerID, fet, mContext );
         }
       }
     }
@@ -341,6 +341,7 @@ void QgsVectorLayerRenderer::drawRendererV2Levels( QgsFeatureIterator& fit )
       mCache->cacheGeometry( fet.id(), *fet.geometry() );
     }
 
+#if 0
     if ( mContext.labelingEngine() )
     {
       if ( mLabeling )
@@ -352,6 +353,7 @@ void QgsVectorLayerRenderer::drawRendererV2Levels( QgsFeatureIterator& fit )
         mContext.labelingEngine()->registerDiagramFeature( mLayerID, fet, mContext );
       }
     }
+#endif
   }
 
   // find out the order
