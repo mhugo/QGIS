@@ -214,6 +214,10 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
         needMainLabelLayer = true;
       }
     }
+    else if ( ml->type() == QgsMapLayer::LabelLayer && mCache )
+    {
+      mCache->clearCacheImage( ml->id() );
+    }
 
     layerJobs.append( LayerRenderJob() );
     LayerRenderJob& job = layerJobs.last();

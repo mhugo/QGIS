@@ -25,7 +25,6 @@ class QgsLabelLayerCacheTest : public QObject
 public:
 
   QgsLabelLayerCacheTest() : mInvalidated(false) {}
-  ~QgsLabelLayerCacheTest();
 
   //
   // Cache test. Returns true if the last call was with the same parameters
@@ -35,9 +34,6 @@ public:
   // force invalidation
   void invalidate();
 
-private slots:
-  void onRepaintLayer();
-
 private:
   // list of layer' id
   QSet<QString> mLayers;
@@ -46,11 +42,10 @@ private:
   // scale
   double mScale;
 
-  void disconnectLayers();
-
   bool mInvalidated;
 };
 
+class QgsLabelLayerLegend;
 /** \ingroup core
     Label layer class
  */
@@ -60,6 +55,7 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
 
   public:
     QgsLabelLayer( QString layerName = "" );
+    ~QgsLabelLayer();
 
     /**
      * Rendering part
@@ -90,16 +86,35 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
  private slots:
     void invalidateCache();
 
+    void onLayersAdded( QList<QgsMapLayer*> );
+    void onLayerRemoved( QString layerid );
+    void onLabelLayerChanged( const QString& oldLabelLayer );
+
+    void onRepaintLayer();
+
  private:
+    bool mInit;
+
+    void init();
+
     void prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames, QgsLabelingEngineInterface* labelingEngine );
 
-    QVector<QgsVectorLayer*> mLayers;
+    void updateLegend();
+
+    // list of vector layers in this label layer
+    QList<QgsVectorLayer*> mLayers;
+
+    // add a layer to the list of layers, if possible
+    // returns true if a layer has been added
+    bool addLayer( QgsVectorLayer* );
 
     QgsLabelLayerCacheTest mCacheTest;
 
     QScopedPointer<QImage> mCacheImage;
 
     bool mCacheEnabled;
+
+    QgsLabelLayerLegend* mLegend;
 };
 
 
@@ -115,13 +130,13 @@ public:
 
   virtual QList<QgsLayerTreeModelLegendNode*> createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer ) override;
 
-private slots:
-  void onLayersAdded( QList<QgsMapLayer*> layers );
-  void onLayerRemoved( QString );
-  void onLabelLayerChanged( const QString& oldLabel );
-
 private:
+  void emitItemsChanged();
+
   QgsLabelLayer* mLayer;
+
+  // allow it to call emitItemsChanged()
+  friend class QgsLabelLayer;
 };
 
 #endif // QGSLABELLAYER_H

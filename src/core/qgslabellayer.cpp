@@ -52,12 +52,7 @@ bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet
   mScale = scale;
   mExtent = extent;
 
-  disconnectLayers();
   mLayers = layerIds;
-  // connect new layers
-  foreach( QgsVectorLayer* vl, layers ) {
-    connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
-  }
   mInvalidated = false;
 
   return hit;
@@ -68,46 +63,8 @@ void QgsLabelLayerCacheTest::invalidate()
   mInvalidated = true;
 }
 
-void QgsLabelLayerCacheTest::disconnectLayers()
-{
-  foreach( const QString& lid, mLayers ) {
-    QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(QgsMapLayerRegistry::instance()->mapLayer( lid ));
-    disconnect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
-  }
-}
-
-QgsLabelLayerCacheTest::~QgsLabelLayerCacheTest()
-{
-  disconnectLayers();
-}
-
-void QgsLabelLayerCacheTest::onRepaintLayer()
-{
-  QgsVectorLayer *vl = qobject_cast<QgsVectorLayer*>(sender());
-  if ( mLayers.contains(vl->id()) ) {
-    mInvalidated = true;
-  }
-}
-
-
 QgsLabelLayerLegend::QgsLabelLayerLegend( QgsLabelLayer* layer ) : QgsMapLayerLegend(), mLayer(layer)
 {
-  // register new layer creatio / deletionn, to update the legend
-  connect( QgsMapLayerRegistry::instance(), SIGNAL( legendLayersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
-
-  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
-  {
-    if ( ml->type() != QgsMapLayer::VectorLayer )
-    {
-      continue;
-    }
-
-    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
-    // register to label layer change
-    connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-    // register to the deletion
-    connect( QgsMapLayerRegistry::instance(), SIGNAL( layerRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
-  }
 }
 
 QList<QgsLayerTreeModelLegendNode*> QgsLabelLayerLegend::createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer )
@@ -148,59 +105,190 @@ QList<QgsLayerTreeModelLegendNode*> QgsLabelLayerLegend::createLayerTreeModelLeg
   return nodes;
 }
 
-void QgsLabelLayerLegend::onLayersAdded( QList<QgsMapLayer*> layers )
+void QgsLabelLayerLegend::emitItemsChanged()
 {
-  bool doEmit = false;
-  foreach( QgsMapLayer* ml, layers )
-  {
-    if ( ml->type() != QgsMapLayer::VectorLayer )
-    {
-      return;
-    }
-
-    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
-    if ( vl->labelLayer() == mLayer->id() )
-    {
-      doEmit = true;
-    }
-    // register to label layer change
-    connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-    // register to the deletion
-    connect( QgsMapLayerRegistry::instance(), SIGNAL( layerRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
-  }
-  if (doEmit)
-  {
-    emit itemsChanged();
-  }
-}
-
-void QgsLabelLayerLegend::onLabelLayerChanged( const QString& oldLabel )
-{
-  QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(sender());
-  if ( oldLabel == mLayer->id() || vl->labelLayer() == mLayer->id() )
-  {
-    emit itemsChanged();
-  }
-}
-
-void QgsLabelLayerLegend::onLayerRemoved( QString layerId )
-{
-  // disconnect label layer change signal
-  QgsVectorLayer *vl = static_cast<QgsVectorLayer*>(QgsMapLayerRegistry::instance()->mapLayer( layerId ));
-  disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-
   emit itemsChanged();
 }
 
 QgsLabelLayer::QgsLabelLayer( QString layerName )
   : QgsMapLayer( LabelLayer, layerName ),
+    mInit( false ),
     mCacheEnabled( false )
 {
-  setLegend( new QgsLabelLayerLegend(this) );
+  mLegend = new QgsLabelLayerLegend(this); // will be own by QgsMapLayer
+  setLegend( mLegend );
+
   mValid = true;
+
+  connect( QgsMapLayerRegistry::instance(), SIGNAL( layersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
+  connect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
 
   // invalidate cache when triggerRepaint is called, to be consistent with QgsMapLayer's behaviour
   connect( this, SIGNAL( repaintRequested() ), this, SIGNAL( invalidateCache() ) );
+}
+
+void QgsLabelLayer::init()
+{
+  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
+  {
+    if ( ml->type() != QgsMapLayer::VectorLayer )
+    {
+      continue;
+    }
+    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
+    addLayer( vl );
+
+    // register to label layer change signal
+    connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    // register to repaint request
+    connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
+  }
+
+  // now we are initialized
+  mInit = true;
+}
+
+QgsLabelLayer::~QgsLabelLayer()
+{
+  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
+  {
+    if ( ml->type() != QgsMapLayer::VectorLayer )
+    {
+      continue;
+    }
+    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
+    disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    disconnect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
+  }
+  disconnect( QgsMapLayerRegistry::instance(), SIGNAL( layersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
+  disconnect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
+}
+
+bool QgsLabelLayer::addLayer( QgsVectorLayer* vl )
+{
+  std::cout << "addLayer with label layer " << vl->labelLayer().toUtf8().constData() << std::endl;
+  if ( (vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
+       (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() ) )
+  {
+    if ( !mLayers.contains(vl) )
+    {
+      mLayers << vl;
+      return true;
+    }
+  }
+  return false;
+}
+
+void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
+{
+  bool doUpdateLegend = false;
+
+  QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(sender());
+  std::cout << id().toUtf8().constData() << " label laye changed from " << oldLabelLayer.toUtf8().constData() << " to " << vl->labelLayer().toUtf8().constData() << std::endl;
+  // if the old label layer was this one
+  // remove it from the list of layers
+  if ( (oldLabelLayer.isEmpty() && id() == "_mainlabels_") ||
+       (!oldLabelLayer.isEmpty() && id() == oldLabelLayer) )
+  {
+    doUpdateLegend = true;
+    mLayers.removeOne( vl );
+  }
+
+  // if the new label layer is this one
+  // add it to the list of layers
+  if ( addLayer( vl ) )
+  {
+    doUpdateLegend = true;
+  }
+  if ( doUpdateLegend )
+  {
+    updateLegend();
+  }
+}
+
+void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
+{
+  foreach( QgsMapLayer* ml, layers )
+  {
+    std::cout << "onLayersAdded " << ml->id().toUtf8().constData() << std::endl;
+    if ( ml == this )
+    {
+      // we must wait that the label layer is added to the registry to have its final ID
+      // so that we can know which other vector layers refers to it
+      init();
+      continue;
+    }
+
+    // if not yet initialized
+    if ( !mInit )
+    {
+      continue;
+    }
+
+    if ( ml->type() != QgsMapLayer::VectorLayer )
+    {
+      continue;
+    }
+
+    QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(ml);
+    if ( addLayer( vl ) )
+    {
+      updateLegend();
+    }
+
+    // register to label layer change signal
+    connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    // register to repaint request
+    connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
+  }
+}
+
+void QgsLabelLayer::onLayerRemoved( QString layerid )
+{
+  QgsMapLayer* ml = QgsMapLayerRegistry::instance()->mapLayer(layerid);
+  if ( !ml )
+  {
+    return;
+  }
+
+  if ( ml->type() != QgsMapLayer::VectorLayer )
+  {
+    return;
+  }
+
+  QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(ml);
+  if ( (vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
+       (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() ) )
+  {
+    mLayers.removeOne( vl );
+    updateLegend();
+  }
+
+  // unregister label change signal
+  disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+  // unregister repaint request
+  disconnect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
+}
+
+void QgsLabelLayer::onRepaintLayer()
+{
+  QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(sender());
+  std::cout << vl->id().toUtf8().constData() << " asks for repaint" << std::endl;
+  // if this is one of referenced layers, invalidate cache
+  if ( mLayers.contains( vl ) ) {
+    invalidateCache();
+  }
+}
+
+void QgsLabelLayer::updateLegend()
+{
+  // if the legend is mine
+  // update it
+  if ( legend() == mLegend )
+  {
+    std::cout << "update legend" << std::endl;
+    mLegend->emitItemsChanged();
+  }
 }
 
 void QgsLabelLayer::invalidateCache()
@@ -226,6 +314,7 @@ QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
   if (!init) {
     // this is a special layer, with a special id
     mainLayer.mID = "_mainlabels_";
+    mainLayer.init();
     init = true;
   }
   return &mainLayer;
@@ -300,17 +389,11 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
 
   bool nothingToLabel = true;
   QSet<QgsVectorLayer*> layersToTest;
-  foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
+  std::cout << "begin draw" << std::endl;
+  foreach( QgsVectorLayer* vl, mLayers )
   {
-    if ( ml->type() != QgsMapLayer::VectorLayer )
-    {
-      continue;
-    }
-    QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
-
-    if ( ((vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
-          (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() )) &&
-         (pal->willUseLayer( vl ) || (vl->diagramRenderer() && vl->diagramLayerSettings())) )
+    std::cout << vl->id().toUtf8().constData() << std::endl;
+    if ( pal->willUseLayer( vl ) || (vl->diagramRenderer() && vl->diagramLayerSettings()) )
     {
       layersToTest << vl;
     }
