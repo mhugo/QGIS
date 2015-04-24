@@ -48,6 +48,17 @@ QgsLabelLayerProperties::QgsLabelLayerProperties( QgsLabelLayer *lyr, QWidget *p
                        mOptStackedWidget->indexOf( mOptsPage_Style ) );
   }
 
+  if ( QgsLabelLayerUtils::hasBlendModes( mLayer ) )
+  {
+    mBlendModeGroupBox->setEnabled( false );
+    mBlendModeGroupBox->setToolTip( tr( "Some labels are defined with blend modes for their text, buffer, shape or shadow. Layer blend modes will be ignored." ) );
+  }
+  else
+  {
+    mBlendModeGroupBox->setEnabled( true );
+    mBlendModeGroupBox->setToolTip( "" );
+  }
+
   QString title = QString( tr( "Layer Properties - %1" ) ).arg( lyr->name() );
   restoreOptionsBaseUi( title );
 }
@@ -59,7 +70,14 @@ QgsLabelLayerProperties::~QgsLabelLayerProperties()
 void QgsLabelLayerProperties::apply()
 {
   mLayer->setLayerName( mLayerNameLineEdit->text() );
-  mLayer->setBlendMode( mBlendModeComboBox->blendMode() );
+  if ( mBlendModeGroupBox->isEnabled() )
+  {
+    mLayer->setBlendMode( mBlendModeComboBox->blendMode() );
+  }
+  else
+  {
+    mLayer->setBlendMode( QPainter::CompositionMode_SourceOver );
+  }
 
   mLayer->triggerRepaint();
   // notify the project we've made a change
