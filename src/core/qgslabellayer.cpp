@@ -25,44 +25,6 @@
 #include "diagram/qgsdiagram.h"
 #include "symbology-ng/qgsrendererv2.h"
 
-bool QgsLabelLayerCacheTest::test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers )
-{
-  bool hit = true;
-  if ( scale != mScale ) {
-    hit = false;
-  }
-  if ( hit && extent != mExtent ) {
-    hit = false;
-  }
-  // now compare layers
-  QSet<QString> layerIds;
-  foreach( QgsVectorLayer* vl, layers ) {
-    layerIds << vl->id();
-  }
-  if ( hit ) {
-    if ( layerIds != mLayers ) {
-      hit = false;
-    }
-    else {
-      hit = !mInvalidated;
-    }
-  }
-
-  // save parameters for the next call
-  mScale = scale;
-  mExtent = extent;
-
-  mLayers = layerIds;
-  mInvalidated = false;
-
-  return hit;
-}
-
-void QgsLabelLayerCacheTest::invalidate()
-{
-  mInvalidated = true;
-}
-
 QgsLabelLayerLegend::QgsLabelLayerLegend( QgsLabelLayer* layer ) : QgsMapLayerLegend(), mLayer(layer)
 {
 }
@@ -112,8 +74,7 @@ void QgsLabelLayerLegend::emitItemsChanged()
 
 QgsLabelLayer::QgsLabelLayer( QString layerName )
   : QgsMapLayer( LabelLayer, layerName ),
-    mInit( false ),
-    mCacheEnabled( false )
+    mInit( false )
 {
   mLegend = new QgsLabelLayerLegend(this); // will be own by QgsMapLayer
   setLegend( mLegend );
@@ -122,9 +83,6 @@ QgsLabelLayer::QgsLabelLayer( QString layerName )
 
   connect( QgsMapLayerRegistry::instance(), SIGNAL( layersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
   connect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
-
-  // invalidate cache when triggerRepaint is called, to be consistent with QgsMapLayer's behaviour
-  connect( this, SIGNAL( repaintRequested() ), this, SIGNAL( invalidateCache() ) );
 }
 
 void QgsLabelLayer::init()
@@ -140,8 +98,6 @@ void QgsLabelLayer::init()
 
     // register to label layer change signal
     connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-    // register to repaint request
-    connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
   }
 
   // now we are initialized
@@ -158,7 +114,6 @@ QgsLabelLayer::~QgsLabelLayer()
     }
     QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
     disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-    disconnect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
   }
   disconnect( QgsMapLayerRegistry::instance(), SIGNAL( layersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
   disconnect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
@@ -170,13 +125,15 @@ bool QgsLabelLayer::addLayer( QgsVectorLayer* vl )
   if ( (vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
        (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() ) )
   {
-    if ( !mLayers.contains(vl) )
-    {
-      mLayers << vl;
-      return true;
-    }
+    mLayers << vl;
+    return true;
   }
   return false;
+}
+
+QSet<QgsVectorLayer*> QgsLabelLayer::vectorLayers() const
+{
+  return mLayers;
 }
 
 void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
@@ -191,7 +148,7 @@ void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
        (!oldLabelLayer.isEmpty() && id() == oldLabelLayer) )
   {
     doUpdateLegend = true;
-    mLayers.removeOne( vl );
+    mLayers.remove( vl );
   }
 
   // if the new label layer is this one
@@ -238,8 +195,6 @@ void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
 
     // register to label layer change signal
     connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-    // register to repaint request
-    connect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
   }
 }
 
@@ -260,24 +215,12 @@ void QgsLabelLayer::onLayerRemoved( QString layerid )
   if ( (vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
        (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() ) )
   {
-    mLayers.removeOne( vl );
+    mLayers.remove( vl );
     updateLegend();
   }
 
   // unregister label change signal
   disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
-  // unregister repaint request
-  disconnect( vl, SIGNAL( repaintRequested() ), this, SLOT( onRepaintLayer() ) );
-}
-
-void QgsLabelLayer::onRepaintLayer()
-{
-  QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(sender());
-  std::cout << vl->id().toUtf8().constData() << " asks for repaint" << std::endl;
-  // if this is one of referenced layers, invalidate cache
-  if ( mLayers.contains( vl ) ) {
-    invalidateCache();
-  }
 }
 
 void QgsLabelLayer::updateLegend()
@@ -289,22 +232,6 @@ void QgsLabelLayer::updateLegend()
     std::cout << "update legend" << std::endl;
     mLegend->emitItemsChanged();
   }
-}
-
-void QgsLabelLayer::invalidateCache()
-{
-  std::cout << "invalidate cache" << std::endl;
-  mCacheTest.invalidate();
-}
-
-bool QgsLabelLayer::cacheEnabled() const
-{
-  return mCacheEnabled;
-}
-
-void QgsLabelLayer::setCacheEnabled( bool enable )
-{
-  mCacheEnabled = enable;
 }
 
 QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
@@ -402,25 +329,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     {
       return false;
     }
-  }
-
-  QImage* img = dynamic_cast<QImage*>( context.painter()->device() );
-  QPainter* oldPainter = context.painter();
-  QScopedPointer<QPainter> imgPainter;
-  if ( mCacheEnabled && img )
-  {
-    std::cout << "device is an image" << std::endl;
-    if ( mCacheTest.test( context.extent(), context.scaleFactor(), layersToTest ) )
-    {
-      // we have a cache image, use it
-      std::cout << "use cache image" << std::endl;
-      context.painter()->drawImage( QPoint(0,0), *mCacheImage );
-      return true;
-    }
-    mCacheImage.reset( new QImage( img->width(), img->height(), img->format() ) );
-    mCacheImage->fill( QColor(0,0,0,0) );
-    imgPainter.reset( new QPainter( mCacheImage.data() ) );
-    context.setPainter( imgPainter.data() );
   }
 
   // draw labels
@@ -522,14 +430,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     pal->exit();
   }
 
-  if ( !imgPainter.isNull() )
-  {
-    // restore painter
-    imgPainter->end();
-    context.setPainter( oldPainter );
-    oldPainter->drawImage( QPoint(0,0), *mCacheImage );
-  }
-
   return !cancelled;
 }
 
@@ -547,7 +447,6 @@ bool QgsLabelLayer::writeXml( QDomNode & layer_node,
   }
 
   mapLayerNode.setAttribute( "type", "label" );
-  mapLayerNode.setAttribute( "cacheEnabled", mCacheEnabled ? "true" : "false" );
 
   return true;
 }
@@ -563,8 +462,6 @@ bool QgsLabelLayer::readXml( const QDomNode & layer_node )
     QgsMessageLog::logMessage( tr( "<maplayer> not found." ), tr( "Label" ) );
     return false;
   }
-
-  mCacheEnabled = mapLayerNode.attribute("cacheEnabled") == "true";
 
   return true;
 }
@@ -591,4 +488,29 @@ class QgsLabelLayerRenderer : public QgsMapLayerRenderer
 QgsMapLayerRenderer* QgsLabelLayer::createMapRenderer( QgsRenderContext& rendererContext )
 {
   return new QgsLabelLayerRenderer( this, rendererContext );
+}
+
+namespace QgsLabelLayerUtils
+{
+
+bool hasBlendModes( const QgsLabelLayer* layer )
+{
+  foreach( QgsVectorLayer *vl, layer->vectorLayers() )
+  {
+    QgsPalLayerSettings s;
+    s.readFromLayer( vl );
+    if ( s.blendMode || s.dataDefinedIsActive( QgsPalLayerSettings::FontBlendMode ) ||
+         ((s.bufferDraw || s.dataDefinedIsActive( QgsPalLayerSettings::BufferDraw )) &&
+          (s.bufferBlendMode || s.dataDefinedIsActive( QgsPalLayerSettings::BufferBlendMode ))) ||
+         ((s.shapeDraw || s.dataDefinedIsActive( QgsPalLayerSettings::ShapeDraw )) &&
+          (s.shapeBlendMode || s.dataDefinedIsActive( QgsPalLayerSettings::ShapeBlendMode ))) ||
+         ((s.shadowDraw || s.dataDefinedIsActive( QgsPalLayerSettings::ShadowDraw )) &&
+          (s.shadowBlendMode || s.dataDefinedIsActive( QgsPalLayerSettings::ShadowBlendMode ))) )
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 }

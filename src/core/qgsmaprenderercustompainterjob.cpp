@@ -338,15 +338,17 @@ void QgsMapRendererJob::updateLayerGeometryCaches()
 
 bool QgsMapRendererJob::needTemporaryImage( QgsMapLayer* ml )
 {
-  if ( mSettings.testFlag( QgsMapSettings::UseAdvancedEffects ) && ml->type() == QgsMapLayer::VectorLayer )
+  if ( mSettings.testFlag( QgsMapSettings::UseAdvancedEffects ) )
   {
+    if ( ml->blendMode() != QPainter::CompositionMode_SourceOver )
+      return true;
+
     QgsVectorLayer* vl = qobject_cast<QgsVectorLayer *>( ml );
-    if ((( vl->blendMode() != QPainter::CompositionMode_SourceOver )
-         || ( vl->featureBlendMode() != QPainter::CompositionMode_SourceOver )
-         || ( vl->layerTransparency() != 0 ) ) )
+    if ( vl && ( vl->featureBlendMode() != QPainter::CompositionMode_SourceOver || vl->layerTransparency() != 0 ) )
       return true;
   }
 
   return false;
 }
+
 

@@ -153,20 +153,31 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
   mGeometryCaches.clear();
 
   bool needMainLabelLayer = false;
-
-  while ( li.hasPrevious() )
+  while ( li.hasPrevious() || needMainLabelLayer )
   {
-    QString layerId = li.previous();
+    QString layerId;
+    QgsMapLayer *ml = 0;
+    if ( !li.hasPrevious() )
+    {
+      ml = QgsLabelLayer::mainLabelLayer();
+      layerId = ml->id();
+      // end the loop
+      needMainLabelLayer = false;
+    }
+    else
+    {
+      layerId = li.previous();
+      ml = QgsMapLayerRegistry::instance()->mapLayer( layerId );
+
+      if ( !ml )
+      {
+        mErrors.append( Error( layerId, tr( "Layer not found in registry." ) ) );
+        continue;
+      }
+    }
+    std::cout << "***********rendering " << layerId.toUtf8().constData() << std::endl;
 
     QgsDebugMsg( "Rendering at layer item " + layerId );
-
-    QgsMapLayer *ml = QgsMapLayerRegistry::instance()->mapLayer( layerId );
-
-    if ( !ml )
-    {
-      mErrors.append( Error( layerId, tr( "Layer not found in registry." ) ) );
-      continue;
-    }
 
     QgsDebugMsg( QString( "layer %1:  minscale:%2  maxscale:%3  scaledepvis:%4  blendmode:%5" )
                  .arg( ml->name() )
@@ -200,6 +211,9 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
       }
     }
 
+    bool canUseCache = true;
+    bool canUseImage = true;
+
     // Force render of layers that are being edited
     if ( ml->type() == QgsMapLayer::VectorLayer )
     {
@@ -207,6 +221,7 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
       if ( mCache && vl->isEditable() )
         mCache->clearCacheImage( ml->id() );
 
+      // test if we need to insert a label layer on top of other layers
       if ( !needMainLabelLayer &&
            ( (labelingEngine && labelingEngine->willUseLayer( vl )) || (vl->diagramRenderer() && vl->diagramLayerSettings()) ) &&
            vl->labelLayer().isEmpty() )
@@ -214,9 +229,13 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
         needMainLabelLayer = true;
       }
     }
-    else if ( ml->type() == QgsMapLayer::LabelLayer && mCache )
+    else if ( ml->type() == QgsMapLayer::LabelLayer && QgsLabelLayerUtils::hasBlendModes( qobject_cast<QgsLabelLayer*>(ml) ) )
     {
-      mCache->clearCacheImage( ml->id() );
+      // if the label layer have references to vector layers that use blend modes for label
+      // we cannot use neither the cache image and a temporary image
+      // since labels must be directly blend with underlying layers
+      canUseCache = false;
+      canUseImage = false;
     }
 
     layerJobs.append( LayerRenderJob() );
@@ -233,19 +252,26 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
     job.context.setExtent( r1 );
 
     // if we can use the cache, let's do it and avoid rendering!
-    if ( mCache && !mCache->cacheImage( ml->id() ).isNull() )
+    if ( canUseCache && mCache )
     {
-      job.cached = true;
-      job.img = new QImage( mCache->cacheImage( ml->id() ) );
-      job.renderer = 0;
-      job.context.setPainter( 0 );
-      continue;
+      // test cache for this layer and get back the cache image, if any
+      QImage img = mCache->cacheImage( ml->id() );
+      std::cout << img.width() << "x" << img.height() << " null: " << img.isNull() << std::endl;
+      if ( !img.isNull() )
+      {
+        std::cout << " **** use cache image for " << ml->id().toUtf8().constData() << " ****" << std::endl;
+        job.cached = true;
+        job.img = new QImage(img);
+        job.renderer = 0;
+        job.context.setPainter( 0 );
+        continue;
+      }
     }
 
     // If we are drawing with an alternative blending mode then we need to render to a separate image
     // before compositing this on the map. This effectively flattens the layer and prevents
     // blending occuring between objects on the layer
-    if ( mCache || !painter || needTemporaryImage( ml ) )
+    if ( (mCache || !painter || needTemporaryImage( ml )) && canUseImage )
     {
       // Flattened image for drawing when a blending mode is set
       QImage * mypFlattenedImage = 0;
@@ -285,43 +311,6 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
     }
 
   } // while (li.hasPrevious())
-
-  if ( needMainLabelLayer ) {
-    std::cout << "add a label layer" << std::endl;
-    layerJobs.append( LayerRenderJob() );
-    LayerRenderJob& job = layerJobs.last();
-    job.cached = false;
-    job.img = 0;
-    job.context = QgsRenderContext::fromMapSettings( mSettings );
-    if ( mCache )
-    {
-      QImage * mypFlattenedImage = 0;
-      mypFlattenedImage = new QImage( mSettings.outputSize().width(),
-                                      mSettings.outputSize().height(),
-                                      mSettings.outputImageFormat() );
-      if ( mypFlattenedImage->isNull() )
-      {
-        mErrors.append( Error( "Label layer", tr( "Insufficient memory for image %1x%2" ).arg( mSettings.outputSize().width() ).arg( mSettings.outputSize().height() ) ) );
-        delete mypFlattenedImage;
-        layerJobs.removeLast();
-        return layerJobs;
-      }
-      mypFlattenedImage->fill( 0 );
-
-      job.img = mypFlattenedImage;
-      QPainter* mypPainter = new QPainter( job.img );
-      mypPainter->setRenderHint( QPainter::Antialiasing, mSettings.testFlag( QgsMapSettings::Antialiasing ) );
-      job.context.setPainter( mypPainter );
-    }
-    else
-    {
-      job.context.setPainter( painter );
-    }
-    job.context.setLabelingEngine( labelingEngine );
-    job.context.setExtent( mSettings.visibleExtent() );
-    // use the main label layer
-    job.renderer = QgsLabelLayer::mainLabelLayer()->createMapRenderer( job.context );
-  }
 
   return layerJobs;
 }
@@ -376,8 +365,12 @@ QImage QgsMapRendererJob::composeImage( const QgsMapSettings& settings, const La
 
     painter.setCompositionMode( job.blendMode );
 
-    Q_ASSERT( job.img != 0 );
-    painter.drawImage( 0, 0, *job.img );
+    if ( job.img )
+    {
+      // job.img may be null when layers are forced to be blend without temporary image in between
+      // (label layer with blend modes in labels for instance)
+      painter.drawImage( 0, 0, *job.img );
+    }
   }
 
   painter.end();

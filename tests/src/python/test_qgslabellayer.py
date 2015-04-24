@@ -37,6 +37,15 @@ def enableLabels( vl, attribute, isExpr = False ):
     s.isExpression = isExpr
     s.writeToLayer( vl )
 
+def renderToImage( mapsettings, cache = None ):
+    job = QgsMapRendererSequentialJob(mapsettings)
+    if cache is not None:
+        job.setCache( cache )
+    job.start()
+    job.waitForFinished()
+
+    return job.renderedImage()
+
 class TestPyQgsLabelLayer(unittest.TestCase):
 
     def testCache(self):
@@ -56,8 +65,6 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         enableLabels( vl2, "NAME_1 || markRendering(0)", True )
 
         QgsMapLayerRegistry.instance().addMapLayers([vl, vl2])
-
-        QgsLabelLayer.mainLabelLayer().setCacheEnabled( True )
 
         # map settings
         ms = QgsMapSettings()
@@ -79,13 +86,14 @@ class TestPyQgsLabelLayer(unittest.TestCase):
 
         def _testCache():
             global gRendered
+            cache = QgsMapRendererCache()
             # check that it is rendered
             gRendered = 0
-            renderMapToImage(ms)
+            renderToImage(ms, cache)
             assert gRendered == 8
             # then use the cache
             gRendered = 0
-            renderMapToImage(ms)
+            renderToImage(ms, cache)
             assert gRendered == 0
 
         _testCache()
@@ -158,7 +166,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         vl2.setLabelLayer(ll.id())
         ms.setLayers([ll.id(), vl2.id(), vl.id() ])
 
-        img = renderMapToImage( ms )
+        img = renderToImage( ms )
         img.save("t2.png")
 
 if __name__ == '__main__':

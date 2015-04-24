@@ -18,33 +18,6 @@
 #include "qgsmaplayer.h"
 #include "qgsmaplayerlegend.h"
 
-class QgsLabelLayerCacheTest : public QObject
-{
-  Q_OBJECT
-
-public:
-
-  QgsLabelLayerCacheTest() : mInvalidated(false) {}
-
-  //
-  // Cache test. Returns true if the last call was with the same parameters
-  // and with vector layers not invalidated
-  bool test( QgsRectangle extent, double scale, const QSet<QgsVectorLayer*>& layers );
-
-  // force invalidation
-  void invalidate();
-
-private:
-  // list of layer' id
-  QSet<QString> mLayers;
-  // extent
-  QgsRectangle mExtent;
-  // scale
-  double mScale;
-
-  bool mInvalidated;
-};
-
 class QgsLabelLayerLegend;
 /** \ingroup core
     Label layer class
@@ -77,20 +50,14 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     bool readXml( const QDomNode & layer_node ) override;
     bool writeXml( QDomNode & layer_node, QDomDocument & document ) override;
 
-    bool cacheEnabled() const;
-
-    void setCacheEnabled( bool e );
+    QSet<QgsVectorLayer*> vectorLayers() const;
 
     static QgsLabelLayer* mainLabelLayer();
 
  private slots:
-    void invalidateCache();
-
     void onLayersAdded( QList<QgsMapLayer*> );
     void onLayerRemoved( QString layerid );
     void onLabelLayerChanged( const QString& oldLabelLayer );
-
-    void onRepaintLayer();
 
  private:
     bool mInit;
@@ -102,21 +69,21 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     void updateLegend();
 
     // list of vector layers in this label layer
-    QList<QgsVectorLayer*> mLayers;
+    QSet<QgsVectorLayer*> mLayers;
 
     // add a layer to the list of layers, if possible
     // returns true if a layer has been added
     bool addLayer( QgsVectorLayer* );
 
-    QgsLabelLayerCacheTest mCacheTest;
-
-    QScopedPointer<QImage> mCacheImage;
-
-    bool mCacheEnabled;
-
     QgsLabelLayerLegend* mLegend;
 };
 
+namespace QgsLabelLayerUtils
+{
+
+bool hasBlendModes( const QgsLabelLayer* layer );
+
+}
 
 /**
  * Private class for label layer legend

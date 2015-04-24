@@ -19,9 +19,5 @@ class QgsLabelLayer : QgsMapLayer
 
     virtual bool writeSymbology( QDomNode& node, QDomDocument& doc, QString& errorMessage) const;
 
-    bool cacheEnabled() const;
-
-    void setCacheEnabled( bool e );
-
     static QgsLabelLayer* mainLabelLayer();
 };

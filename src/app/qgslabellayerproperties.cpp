@@ -20,6 +20,7 @@
 
 #include "qgslabellayerproperties.h"
 #include "qgslabellayer.h"
+#include "qgsproject.h"
 
 QgsLabelLayerProperties::QgsLabelLayerProperties( QgsLabelLayer *lyr, QWidget *parent, Qt::WindowFlags fl )
   : QgsOptionsDialogBase( "LabelLayerProperties", parent, fl )
@@ -37,7 +38,6 @@ QgsLabelLayerProperties::QgsLabelLayerProperties( QgsLabelLayer *lyr, QWidget *p
 
   mLayerNameLineEdit->setText( mLayer->originalName() );
   mBlendModeComboBox->setBlendMode( mLayer->blendMode() );
-  mCacheLabelsChkBox->setChecked( mLayer->cacheEnabled() );
 
   QSettings settings;
   // if dialog hasn't been opened/closed yet, default to Styles tab, which is used most often
@@ -60,5 +60,8 @@ void QgsLabelLayerProperties::apply()
 {
   mLayer->setLayerName( mLayerNameLineEdit->text() );
   mLayer->setBlendMode( mBlendModeComboBox->blendMode() );
-  mLayer->setCacheEnabled( mCacheLabelsChkBox->isChecked() );
+
+  mLayer->triggerRepaint();
+  // notify the project we've made a change
+  QgsProject::instance()->dirty( true );
 }

@@ -17,12 +17,14 @@
 #define QGSMAPRENDERERCACHE_H
 
 #include <QMap>
+#include <QSet>
 #include <QImage>
 #include <QMutex>
 
 #include "qgsrectangle.h"
 
 
+class QgsVectorLayer;
 /**
  * This class is responsible for keeping cache of rendered images of individual layers.
  *
@@ -70,6 +72,7 @@ class CORE_EXPORT QgsMapRendererCache : public QObject
     QgsRectangle mExtent;
     double mScale;
     QMap<QString, QImage> mCachedImages;
+    QMap<QString, QSet<QgsVectorLayer*> > mVectorLayers;
 };
 
 

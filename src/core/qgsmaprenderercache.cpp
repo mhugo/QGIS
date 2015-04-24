@@ -17,6 +17,9 @@
 
 #include "qgsmaplayerregistry.h"
 #include "qgsmaplayer.h"
+#include "qgslabellayer.h"
+
+#include "qgsvectorlayer.h"
 
 QgsMapRendererCache::QgsMapRendererCache()
 {
@@ -44,6 +47,7 @@ void QgsMapRendererCache::clearInternal()
     }
   }
   mCachedImages.clear();
+  mVectorLayers.clear();
 }
 
 bool QgsMapRendererCache::init( QgsRectangle extent, double scale )
@@ -80,6 +84,24 @@ void QgsMapRendererCache::setCacheImage( QString layerId, const QImage& img )
 QImage QgsMapRendererCache::cacheImage( QString layerId )
 {
   QMutexLocker lock( &mMutex );
+
+  QgsMapLayer* ml = QgsMapLayerRegistry::instance()->mapLayer( layerId );
+  if ( ml && ml->type() == QgsMapLayer::LabelLayer )
+  {
+    QgsLabelLayer* ll = qobject_cast<QgsLabelLayer*>(ml);
+    // the cache test is a little bit more complex for label layers
+    // we need to take into account referenced vector layers
+    QSet<QgsVectorLayer*> layersToTest = ll->vectorLayers();
+    bool miss = mVectorLayers.value(layerId) != layersToTest;
+    mVectorLayers[layerId] = layersToTest;
+
+    std::cout << "Cache miss for " << layerId.toUtf8().constData() << " : " << miss << std::endl;
+    if ( miss )
+    {
+      return QImage();
+    }
+  }
+
   return mCachedImages.value( layerId );
 }
 
@@ -95,6 +117,7 @@ void QgsMapRendererCache::clearCacheImage( QString layerId )
   QMutexLocker lock( &mMutex );
 
   mCachedImages.remove( layerId );
+  mVectorLayers.remove( layerId );
 
   QgsMapLayer* layer = QgsMapLayerRegistry::instance()->mapLayer( layerId );
   if ( layer )
