@@ -3550,8 +3550,6 @@ void QgsPalLabeling::init( const QgsMapSettings& mapSettings )
 
   clearActiveLayers(); // free any previous QgsDataDefined objects
   mActiveDiagramLayers.clear();
-
-  mResults.reset(new QgsLabelingResults());
 }
 
 void QgsPalLabeling::exit()
@@ -3899,7 +3897,7 @@ void QgsPalLabeling::drawLabeling( QgsRenderContext& context, bool retainPreviou
 
   mPal->registerCancellationCallback( &_palIsCancelled, &context );
 
-  if ( !retainPreviousResults )
+  if ( !retainPreviousResults || !mResults )
   {
     mResults.reset( new QgsLabelingResults() );
   }

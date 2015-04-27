@@ -317,30 +317,22 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   pal->setResults( mainPal->takeResults() );
 
   bool nothingToLabel = true;
-  QSet<QgsVectorLayer*> layersToTest;
   std::cout << "begin draw" << std::endl;
   foreach( QgsVectorLayer* vl, mLayers )
   {
-    std::cout << vl->id().toUtf8().constData() << std::endl;
-    if ( pal->willUseLayer( vl ) || (vl->diagramRenderer() && vl->diagramLayerSettings()) )
+    // visibility test
+    if ( !context.layers().contains( vl->id() ) )
     {
-      layersToTest << vl;
+      continue;
+    }
+    // scale-based visibility test
+    if ( vl->hasScaleBasedVisibility() && ( context.scaleFactor() < vl->minimumScale() || context.scaleFactor() > vl->maximumScale() ) )
+    {
+      continue;
     }
 
-    if ( context.renderingStopped() )
-    {
-      return false;
-    }
-  }
-
-  // draw labels
-  foreach( QgsVectorLayer* vl, layersToTest )
-  {
     bool hasLabels = false;
     bool hasDiagrams = false;
-    // we call vectorLayer(vlid) each time the vector layer is needed
-    // it will then throw an exception if the layer has been deleted by another thread
-    // and allows to cancel the rendering
     QStringList attrNames;
     if ( pal->willUseLayer( vl ) )
     {
@@ -353,6 +345,13 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
       hasDiagrams = true;
       prepareDiagrams( vl, attrNames, pal.data() );
     }
+
+    if ( !hasLabels && !hasDiagrams )
+    {
+      continue;
+    }
+
+    std::cout << vl->id().toUtf8().constData() << std::endl;
 
     QgsFeatureRendererV2* renderer = vl->rendererV2();
     bool filterRendering = renderer->capabilities() & QgsFeatureRendererV2::Filter;
@@ -370,11 +369,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
       if (!renderer->prepareFilter( context, vl->pendingFields() )) {
         std::cout << "PROBLEM preparing filter" << std::endl;
       }
-    }
-
-    foreach( const QString& attr, attrNames )
-    {
-      std::cout << "attribute: " << attr.toUtf8().constData() << std::endl;
     }
 
     QgsFeature fet;
