@@ -698,7 +698,7 @@ class QgsPalLabeling : QgsLabelingEngineInterface
     virtual void registerFeature( const QString& layerID, QgsFeature& feat, const QgsRenderContext& context = QgsRenderContext(), QString dxfLayer = QString::null );
     virtual void registerDiagramFeature( const QString& layerID, QgsFeature& feat, const QgsRenderContext& context = QgsRenderContext() );
     //! called when the map is drawn and labels should be placed
-    virtual void drawLabeling( QgsRenderContext& context );
+    virtual void drawLabeling( QgsRenderContext& context, bool retainPreviousResults = false );
     //! called when we're done with rendering
     virtual void exit();
 
@@ -765,4 +765,8 @@ class QgsPalLabeling : QgsLabelingEngineInterface
                                 const QMap< QgsPalLayerSettings::DataDefinedProperties, QVariant >& ddValues );
 
     void deleteTemporaryData();
+  private:
+    QgsPalLabeling( const QgsPalLabeling& );
+    QgsPalLabeling& operator=( const QgsPalLabeling& );
+
 };

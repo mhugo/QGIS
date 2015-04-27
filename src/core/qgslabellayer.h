@@ -27,6 +27,8 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     Q_OBJECT
 
   public:
+    static const QString MainLabelId;
+
     QgsLabelLayer( QString layerName = "" );
     ~QgsLabelLayer();
 

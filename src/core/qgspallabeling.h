@@ -772,7 +772,7 @@ class CORE_EXPORT QgsPalLabeling : public QgsLabelingEngineInterface
     virtual void registerFeature( const QString& layerID, QgsFeature& feat, const QgsRenderContext& context = QgsRenderContext(), QString dxfLayer = QString::null ) override;
     virtual void registerDiagramFeature( const QString& layerID, QgsFeature& feat, const QgsRenderContext& context = QgsRenderContext() ) override;
     //! called when the map is drawn and labels should be placed
-    virtual void drawLabeling( QgsRenderContext& context ) override;
+    virtual void drawLabeling( QgsRenderContext& context, bool retainPreviousResults = false ) override;
     //! called when we're done with rendering
     virtual void exit() override;
 
@@ -786,6 +786,8 @@ class CORE_EXPORT QgsPalLabeling : public QgsLabelingEngineInterface
     //! Return pointer to recently computed results (in drawLabeling()) and pass the ownership of results to the caller
     //! @note added in 2.4
     QgsLabelingResults* takeResults();
+
+    void setResults( QgsLabelingResults* results );
 
     //! called when passing engine among map renderers
     virtual QgsLabelingEngineInterface* clone() override;
@@ -850,7 +852,7 @@ class CORE_EXPORT QgsPalLabeling : public QgsLabelingEngineInterface
     int mCandPoint, mCandLine, mCandPolygon;
     Search mSearch;
 
-    pal::Pal* mPal;
+    QScopedPointer<pal::Pal> mPal;
 
     // list of candidates from last labeling
     QList<QgsLabelCandidate> mCandidates;
@@ -860,7 +862,10 @@ class CORE_EXPORT QgsPalLabeling : public QgsLabelingEngineInterface
     bool mShowingPartialsLabels; // whether to avoid partials labels or not
     bool mDrawOutlineLabels; // whether to draw labels as text or outlines
 
-    QgsLabelingResults* mResults;
+    QScopedPointer<QgsLabelingResults> mResults;
+ private:
+    QgsPalLabeling( const QgsPalLabeling& );
+    QgsPalLabeling& operator=( const QgsPalLabeling& );
 };
 Q_NOWARN_DEPRECATED_POP
 

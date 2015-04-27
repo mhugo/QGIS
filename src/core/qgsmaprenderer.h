@@ -94,7 +94,7 @@ class CORE_EXPORT QgsLabelingEngineInterface
     virtual void registerDiagramFeature( const QString& layerID, QgsFeature& feat, const QgsRenderContext& context = QgsRenderContext() )
     { Q_UNUSED( layerID ); Q_UNUSED( feat ); Q_UNUSED( context ); }
     //! called when the map is drawn and labels should be placed
-    virtual void drawLabeling( QgsRenderContext& context ) = 0;
+    virtual void drawLabeling( QgsRenderContext& context, bool retainPreviousResults = false ) = 0;
     //! called when we're done with rendering
     virtual void exit() = 0;
     //! return infos about labels at a given (map) position

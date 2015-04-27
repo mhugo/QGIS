@@ -39,7 +39,7 @@ QList<QgsLayerTreeModelLegendNode*> QgsLabelLayerLegend::createLayerTreeModelLeg
     }
     QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
 
-    if ( !vl->labelLayer().isEmpty() && mLayer->id() == vl->labelLayer() )
+    if ( mLayer->id() == vl->labelLayer() )
     {
       QIcon icon;
       if ( vl->geometryType() == QGis::Point )
@@ -85,6 +85,8 @@ QgsLabelLayer::QgsLabelLayer( QString layerName )
   connect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
 }
 
+const QString QgsLabelLayer::MainLabelId = "_mainlabels_";
+
 void QgsLabelLayer::init()
 {
   foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
@@ -122,8 +124,7 @@ QgsLabelLayer::~QgsLabelLayer()
 bool QgsLabelLayer::addLayer( QgsVectorLayer* vl )
 {
   std::cout << "addLayer with label layer " << vl->labelLayer().toUtf8().constData() << std::endl;
-  if ( (vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
-       (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() ) )
+  if ( id() == vl->labelLayer() )
   {
     mLayers << vl;
     return true;
@@ -144,8 +145,7 @@ void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
   std::cout << id().toUtf8().constData() << " label laye changed from " << oldLabelLayer.toUtf8().constData() << " to " << vl->labelLayer().toUtf8().constData() << std::endl;
   // if the old label layer was this one
   // remove it from the list of layers
-  if ( (oldLabelLayer.isEmpty() && id() == "_mainlabels_") ||
-       (!oldLabelLayer.isEmpty() && id() == oldLabelLayer) )
+  if ( id() == oldLabelLayer )
   {
     doUpdateLegend = true;
     mLayers.remove( vl );
@@ -212,8 +212,7 @@ void QgsLabelLayer::onLayerRemoved( QString layerid )
   }
 
   QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(ml);
-  if ( (vl->labelLayer().isEmpty() && id() == "_mainlabels_") ||
-       (!vl->labelLayer().isEmpty() && id() == vl->labelLayer() ) )
+  if ( id() == vl->labelLayer() )
   {
     mLayers.remove( vl );
     updateLegend();
@@ -240,7 +239,7 @@ QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
   static bool init = false;
   if (!init) {
     // this is a special layer, with a special id
-    mainLayer.mID = "_mainlabels_";
+    mainLayer.mID = MainLabelId;
     mainLayer.init();
     init = true;
   }
@@ -312,7 +311,10 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     return false;
   }
   // QgsPalLabeling does not seem to be designed to be reused, so use a local copy
-  QScopedPointer<QgsLabelingEngineInterface> pal( context.labelingEngine()->clone() );
+  QgsPalLabeling* mainPal = dynamic_cast<QgsPalLabeling*>(context.labelingEngine());
+  Q_ASSERT( mainPal );
+  QScopedPointer<QgsPalLabeling> pal( static_cast<QgsPalLabeling*>(mainPal->clone()) );
+  pal->setResults( mainPal->takeResults() );
 
   bool nothingToLabel = true;
   QSet<QgsVectorLayer*> layersToTest;
@@ -426,7 +428,9 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
 
   if ( !cancelled && !nothingToLabel )
   {
-    pal->drawLabeling( context );
+    pal->drawLabeling( context, /* retainPreviousResults = */ true );
+    // set results as partial results for the next label layer
+    mainPal->setResults( pal->takeResults() );
     pal->exit();
   }
 

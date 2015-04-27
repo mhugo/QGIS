@@ -3096,8 +3096,7 @@ double QgsPalLayerSettings::scaleToPixelContext( double size, const QgsRenderCon
 // -------------
 
 QgsPalLabeling::QgsPalLabeling()
-    : mMapSettings( NULL ), mPal( NULL )
-    , mResults( 0 )
+    : mMapSettings( NULL )
 {
 
   // find out engine defaults
@@ -3128,9 +3127,6 @@ QgsPalLabeling::~QgsPalLabeling()
   exit();
 
   clearActiveLayers();
-
-  delete mResults;
-  mResults = 0;
 }
 
 bool QgsPalLabeling::willUseLayer( QgsVectorLayer* layer )
@@ -3531,11 +3527,7 @@ void QgsPalLabeling::init( const QgsMapSettings& mapSettings )
 {
   mMapSettings = &mapSettings;
 
-  // delete if exists already
-  if ( mPal )
-    delete mPal;
-
-  mPal = new Pal;
+  mPal.reset( new Pal() );
 
   SearchMethod s;
   switch ( mSearch )
@@ -3558,12 +3550,12 @@ void QgsPalLabeling::init( const QgsMapSettings& mapSettings )
 
   clearActiveLayers(); // free any previous QgsDataDefined objects
   mActiveDiagramLayers.clear();
+
+  mResults.reset(new QgsLabelingResults());
 }
 
 void QgsPalLabeling::exit()
 {
-  delete mPal;
-  mPal = NULL;
   mMapSettings = NULL;
 }
 
@@ -3899,7 +3891,7 @@ static bool _palIsCancelled( void* ctx )
   return (( QgsRenderContext* ) ctx )->renderingStopped();
 }
 
-void QgsPalLabeling::drawLabeling( QgsRenderContext& context )
+void QgsPalLabeling::drawLabeling( QgsRenderContext& context, bool retainPreviousResults )
 {
   Q_ASSERT( mMapSettings != NULL );
   QPainter* painter = context.painter();
@@ -3907,8 +3899,10 @@ void QgsPalLabeling::drawLabeling( QgsRenderContext& context )
 
   mPal->registerCancellationCallback( &_palIsCancelled, &context );
 
-  delete mResults;
-  mResults = new QgsLabelingResults;
+  if ( !retainPreviousResults )
+  {
+    mResults.reset( new QgsLabelingResults() );
+  }
 
   QTime t;
   t.start();
@@ -4175,15 +4169,14 @@ QList<QgsLabelPosition> QgsPalLabeling::labelsWithinRect( const QgsRectangle& r 
 
 QgsLabelingResults *QgsPalLabeling::takeResults()
 {
-  if ( mResults )
-  {
-    QgsLabelingResults* tmp = mResults;
-    mResults = 0;
-    return tmp; // ownership passed to the caller
-  }
-  else
-    return 0;
+  return mResults.take();
 }
+
+void QgsPalLabeling::setResults( QgsLabelingResults* results )
+{
+  mResults.reset( results );
+}
+
 
 void QgsPalLabeling::numCandidatePositions( int& candPoint, int& candLine, int& candPolygon )
 {

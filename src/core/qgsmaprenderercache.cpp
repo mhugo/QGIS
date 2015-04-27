@@ -123,5 +123,14 @@ void QgsMapRendererCache::clearCacheImage( QString layerId )
   if ( layer )
   {
     disconnect( layer, SIGNAL( repaintRequested() ), this, SLOT( layerRequestedRepaint() ) );
+    if ( layer->type() == QgsMapLayer::VectorLayer )
+    {
+      QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(layer);
+      if ( vl->customProperty( "labeling/enabled" ).toBool() )
+      {
+        mCachedImages.remove( vl->labelLayer() );
+        mVectorLayers.remove( vl->labelLayer() );
+      }
+    }
   }
 }

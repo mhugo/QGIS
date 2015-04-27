@@ -83,6 +83,7 @@
 #include "qgssimplifymethod.h"
 
 #include "diagram/qgsdiagram.h"
+#include "qgslabellayer.h"
 
 #ifdef TESTPROVIDERLIB
 #include <dlfcn.h>
@@ -3895,12 +3896,12 @@ bool QgsAttributeEditorRelation::init( QgsRelationManager* relationManager )
 
 QString QgsVectorLayer::labelLayer() const
 {
-  return mLabelLayer;
+  return mLabelLayer.isEmpty() ? QgsLabelLayer::MainLabelId : mLabelLayer;
 }
 
 void QgsVectorLayer::setLabelLayer( QString labelLayerName )
 {
-  QString old = mLabelLayer;
+  QString old = labelLayer();
   mLabelLayer = labelLayerName;
   emit labelLayerChanged( old );
 }
