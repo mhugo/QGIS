@@ -58,8 +58,7 @@ class CORE_EXPORT QgsLabelSearchTree
     bool insertLabel( LabelPosition* labelPos, int featureId, const QString& layerName, const QString& labeltext, const QFont& labelfont, bool diagram = false, bool pinned = false );
 
   private:
-    // set as mutable because RTree template is not const-correct
-    mutable RTree<QgsLabelPosition*, double, 2, double> mSpatialIndex;
+    RTree<QgsLabelPosition*, double, 2, double> mSpatialIndex;
 };
 
 #endif // QGSLABELTREE_H
