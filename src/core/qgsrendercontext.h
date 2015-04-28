@@ -86,11 +86,6 @@ class CORE_EXPORT QgsRenderContext
     */
     bool showSelection() const { return mShowSelection; }
 
-    /**Returns the list of layers'i rendered
-     * @returns a list of QString carrying layers' id
-     */
-    QStringList layers() const { return mLayers; }
-
     //setters
 
     /**Sets coordinate transformation. QgsRenderContext does not take ownership*/
@@ -122,9 +117,6 @@ class CORE_EXPORT QgsRenderContext
     //! Added in QGIS v2.4
     const QgsVectorSimplifyMethod& vectorSimplifyMethod() const { return mVectorSimplifyMethod; }
     void setVectorSimplifyMethod( const QgsVectorSimplifyMethod& simplifyMethod ) { mVectorSimplifyMethod = simplifyMethod; }
-
-    /**Sets the list of layers rendered, by their id*/
-    void setLayers( const QStringList& layers ) { mLayers = layers; }
 
   private:
 
@@ -173,9 +165,6 @@ class CORE_EXPORT QgsRenderContext
 
     /**Simplification object which holds the information about how to simplify the features for fast rendering */
     QgsVectorSimplifyMethod mVectorSimplifyMethod;
-
-    /**Layers' id to be rendered*/
-    QStringList mLayers;
 };
 
 #endif

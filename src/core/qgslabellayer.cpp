@@ -320,11 +320,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   std::cout << "begin draw" << std::endl;
   foreach( QgsVectorLayer* vl, mLayers )
   {
-    // visibility test
-    if ( !context.layers().contains( vl->id() ) )
-    {
-      continue;
-    }
     // scale-based visibility test
     if ( vl->hasScaleBasedVisibility() && ( context.scaleFactor() < vl->minimumScale() || context.scaleFactor() > vl->maximumScale() ) )
     {
