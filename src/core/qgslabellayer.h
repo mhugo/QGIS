@@ -61,14 +61,14 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     void onLayerRemoved( QString layerid );
     void onLabelLayerChanged( const QString& oldLabelLayer );
 
+    void updateLegend();
+
  private:
     bool mInit;
 
     void init();
 
     void prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames, QgsLabelingEngineInterface* labelingEngine );
-
-    void updateLegend();
 
     // list of vector layers in this label layer
     QSet<QgsVectorLayer*> mLayers;

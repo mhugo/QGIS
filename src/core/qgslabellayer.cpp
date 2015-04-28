@@ -215,7 +215,8 @@ void QgsLabelLayer::onLayerRemoved( QString layerid )
   if ( id() == vl->labelLayer() )
   {
     mLayers.remove( vl );
-    updateLegend();
+    // update legend after the actual layer removal
+    QTimer::singleShot( 0, this, SLOT(updateLegend()) );
   }
 
   // unregister label change signal
