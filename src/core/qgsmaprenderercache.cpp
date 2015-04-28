@@ -20,6 +20,7 @@
 #include "qgslabellayer.h"
 
 #include "qgsvectorlayer.h"
+#include "qgspallabeling.h"
 
 QgsMapRendererCache::QgsMapRendererCache()
 {
@@ -126,7 +127,7 @@ void QgsMapRendererCache::clearCacheImage( QString layerId )
     if ( layer->type() == QgsMapLayer::VectorLayer )
     {
       QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(layer);
-      if ( vl->customProperty( "labeling/enabled" ).toBool() )
+      if ( QgsPalLabeling::staticWillUseLayer( vl ) )
       {
         mCachedImages.remove( vl->labelLayer() );
         mVectorLayers.remove( vl->labelLayer() );
