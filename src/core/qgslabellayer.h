@@ -60,6 +60,7 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     void onLayersAdded( QList<QgsMapLayer*> );
     void onLayerRemoved( QString layerid );
     void onLabelLayerChanged( const QString& oldLabelLayer );
+    void onLayerRenamed();
 
     void updateLegend();
 

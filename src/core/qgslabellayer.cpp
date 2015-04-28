@@ -100,6 +100,7 @@ void QgsLabelLayer::init()
 
     // register to label layer change signal
     connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    connect( vl, SIGNAL( layerNameChanged() ), this, SLOT( onLayerRenamed() ) );
   }
 
   // now we are initialized
@@ -116,6 +117,7 @@ QgsLabelLayer::~QgsLabelLayer()
     }
     QgsVectorLayer* vl = static_cast<QgsVectorLayer*>(ml);
     disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    disconnect( vl, SIGNAL( layerNameChanged() ), this, SLOT( onLayerRenamed() ) );
   }
   disconnect( QgsMapLayerRegistry::instance(), SIGNAL( layersAdded(QList<QgsMapLayer*>) ), this, SLOT( onLayersAdded(QList<QgsMapLayer*>) ) );
   disconnect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
@@ -163,6 +165,15 @@ void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
   }
 }
 
+void QgsLabelLayer::onLayerRenamed()
+{
+  QgsVectorLayer* vl = static_cast<QgsVectorLayer*>( sender() );
+  if ( id() == vl->labelLayer() )
+  {
+    updateLegend();
+  }
+}
+
 void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
 {
   foreach( QgsMapLayer* ml, layers )
@@ -195,6 +206,7 @@ void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
 
     // register to label layer change signal
     connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+    connect( vl, SIGNAL( layerNameChanged() ), this, SLOT( onLayerRenamed() ) );
   }
 }
 
@@ -221,6 +233,7 @@ void QgsLabelLayer::onLayerRemoved( QString layerid )
 
   // unregister label change signal
   disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
+  disconnect( vl, SIGNAL( layerNameChanged() ), this, SLOT( onLayerRenamed() ) );
 }
 
 void QgsLabelLayer::updateLegend()
