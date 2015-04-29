@@ -175,7 +175,6 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
         continue;
       }
     }
-    std::cout << "***********rendering " << layerId.toUtf8().constData() << std::endl;
 
     QgsDebugMsg( "Rendering at layer item " + layerId );
 
@@ -256,10 +255,8 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
     {
       // test cache for this layer and get back the cache image, if any
       QImage img = mCache->cacheImage( ml->id() );
-      std::cout << img.width() << "x" << img.height() << " null: " << img.isNull() << std::endl;
       if ( !img.isNull() )
       {
-        std::cout << " **** use cache image for " << ml->id().toUtf8().constData() << " ****" << std::endl;
         job.cached = true;
         job.img = new QImage(img);
         job.renderer = 0;

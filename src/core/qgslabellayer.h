@@ -27,6 +27,9 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     Q_OBJECT
 
   public:
+    /**
+     * The main label layer id
+     */
     static const QString MainLabelId;
 
     QgsLabelLayer( QString layerName = "" );
@@ -52,9 +55,16 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     bool readXml( const QDomNode & layer_node ) override;
     bool writeXml( QDomNode & layer_node, QDomDocument & document ) override;
 
-    // will always return the list of layers in the same order
+    /**
+     * Returns the current list of vector layers that refers to this label layer (through QgsVectorLayer::setLabelLayer)
+     * The returned list is guaranteed to have a stable order
+     */
     QList<QgsVectorLayer*> vectorLayers() const;
 
+    /**
+     * Returns (and creates if needed) the "main" label layer that is always
+     * added is no label layers are explictly created
+     */
     static QgsLabelLayer* mainLabelLayer();
 
  private slots:

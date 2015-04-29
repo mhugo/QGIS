@@ -787,6 +787,7 @@ class CORE_EXPORT QgsPalLabeling : public QgsLabelingEngineInterface
     //! @note added in 2.4
     QgsLabelingResults* takeResults();
 
+    //! Sets the current computed results and takes ownership
     void setResults( QgsLabelingResults* results );
 
     //! called when passing engine among map renderers

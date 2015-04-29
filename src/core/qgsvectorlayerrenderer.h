@@ -61,13 +61,6 @@ class QgsVectorLayerRenderer : public QgsMapLayerRenderer
 
   private:
 
-    /**Registers label and diagram layer
-      @param layer diagram layer
-      @param attributeNames attributes needed for labeling and diagrams will be added to the list
-     */
-    void prepareLabeling( QgsVectorLayer* layer, QStringList& attributeNames );
-    void prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames );
-
     /** Draw layer with renderer V2. QgsFeatureRenderer::startRender() needs to be called before using this method
      */
     void drawRendererV2( QgsFeatureIterator& fit );

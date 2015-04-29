@@ -91,11 +91,6 @@ QgsVectorLayerRenderer::QgsVectorLayerRenderer( QgsVectorLayer* layer, QgsRender
   }
 
   mAttrNames = mRendererV2->usedAttributes();
-
-  //register label and diagram layer to the labeling engine
-  //  prepareLabeling( layer, mAttrNames );
-  //  prepareDiagrams( layer, mAttrNames );
-
 }
 
 
@@ -263,26 +258,12 @@ void QgsVectorLayerRenderer::drawRendererV2( QgsFeatureIterator& fit )
       bool drawMarker = ( mDrawVertexMarkers && mContext.drawEditingInformation() && ( !mVertexMarkerOnlyForSelection || sel ) );
 
       // render feature
-      bool rendered = mRendererV2->renderFeature( fet, mContext, -1, sel, drawMarker );
+      mRendererV2->renderFeature( fet, mContext, -1, sel, drawMarker );
 
       if ( mCache )
       {
         // Cache this for the use of (e.g.) modifying the feature's uncommitted geometry.
         mCache->cacheGeometry( fet.id(), *fet.geometry() );
-      }
-
-      // labeling - register feature
-      Q_UNUSED( rendered );
-      if ( rendered && mContext.labelingEngine() )
-      {
-        if ( mLabeling )
-        {
-          //mContext.labelingEngine()->registerFeature( mLayerID, fet, mContext );
-        }
-        if ( mDiagrams )
-        {
-          //mContext.labelingEngine()->registerDiagramFeature( mLayerID, fet, mContext );
-        }
       }
     }
     catch ( const QgsCsException &cse )
@@ -340,20 +321,6 @@ void QgsVectorLayerRenderer::drawRendererV2Levels( QgsFeatureIterator& fit )
       // Cache this for the use of (e.g.) modifying the feature's uncommitted geometry.
       mCache->cacheGeometry( fet.id(), *fet.geometry() );
     }
-
-#if 0
-    if ( mContext.labelingEngine() )
-    {
-      if ( mLabeling )
-      {
-        mContext.labelingEngine()->registerFeature( mLayerID, fet, mContext );
-      }
-      if ( mDiagrams )
-      {
-        mContext.labelingEngine()->registerDiagramFeature( mLayerID, fet, mContext );
-      }
-    }
-#endif
   }
 
   // find out the order
@@ -427,106 +394,4 @@ void QgsVectorLayerRenderer::stopRendererV2( QgsSingleSymbolRendererV2* selRende
     selRenderer->stopRender( mContext );
     delete selRenderer;
   }
-}
-
-
-
-
-void QgsVectorLayerRenderer::prepareLabeling( QgsVectorLayer* layer, QStringList& attributeNames )
-{
-  if ( !mContext.labelingEngine() )
-    return;
-
-  if ( mContext.labelingEngine()->prepareLayer( layer, attributeNames, mContext ) )
-  {
-    mLabeling = true;
-
-    QgsPalLayerSettings& palyr = mContext.labelingEngine()->layer( mLayerID );
-    Q_UNUSED( palyr );
-
-#if 0 // TODO: limit of labels, font not found
-    // see if feature count limit is set for labeling
-    if ( palyr.limitNumLabels && palyr.maxNumLabels > 0 )
-    {
-      QgsFeatureIterator fit = getFeatures( QgsFeatureRequest()
-                                            .setFilterRect( mContext.extent() )
-                                            .setSubsetOfAttributes( QgsAttributeList() ) );
-
-      // total number of features that may be labeled
-      QgsFeature f;
-      int nFeatsToLabel = 0;
-      while ( fit.nextFeature( f ) )
-      {
-        nFeatsToLabel++;
-      }
-      palyr.mFeaturesToLabel = nFeatsToLabel;
-    }
-
-    // notify user about any font substitution
-    if ( !palyr.mTextFontFound && !mLabelFontNotFoundNotified )
-    {
-      emit labelingFontNotFound( this, palyr.mTextFontFamily );
-      mLabelFontNotFoundNotified = true;
-    }
-#endif
-  }
-}
-
-void QgsVectorLayerRenderer::prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames )
-{
-  if ( !mContext.labelingEngine() )
-    return;
-
-  if ( !layer->diagramRenderer() || !layer->diagramLayerSettings() )
-    return;
-
-  mDiagrams = true;
-
-  const QgsDiagramRendererV2* diagRenderer = layer->diagramRenderer();
-  const QgsDiagramLayerSettings* diagSettings = layer->diagramLayerSettings();
-
-  mContext.labelingEngine()->addDiagramLayer( layer, diagSettings ); // will make internal copy of diagSettings + initialize it
-
-  //add attributes needed by the diagram renderer
-  QList<QString> att = diagRenderer->diagramAttributes();
-  QList<QString>::const_iterator attIt = att.constBegin();
-  for ( ; attIt != att.constEnd(); ++attIt )
-  {
-    QgsExpression* expression = diagRenderer->diagram()->getExpression( *attIt, &mFields );
-    QStringList columns = expression->referencedColumns();
-    QStringList::const_iterator columnsIterator = columns.constBegin();
-    for ( ; columnsIterator != columns.constEnd(); ++columnsIterator )
-    {
-      if ( !attributeNames.contains( *columnsIterator ) )
-        attributeNames << *columnsIterator;
-    }
-  }
-
-  const QgsLinearlyInterpolatedDiagramRenderer* linearlyInterpolatedDiagramRenderer = dynamic_cast<const QgsLinearlyInterpolatedDiagramRenderer*>( layer->diagramRenderer() );
-  if ( linearlyInterpolatedDiagramRenderer != NULL )
-  {
-    if ( linearlyInterpolatedDiagramRenderer->classificationAttributeIsExpression() )
-    {
-      QgsExpression* expression = diagRenderer->diagram()->getExpression( linearlyInterpolatedDiagramRenderer->classificationAttributeExpression(), &mFields );
-      QStringList columns = expression->referencedColumns();
-      QStringList::const_iterator columnsIterator = columns.constBegin();
-      for ( ; columnsIterator != columns.constEnd(); ++columnsIterator )
-      {
-        if ( !attributeNames.contains( *columnsIterator ) )
-          attributeNames << *columnsIterator;
-      }
-    }
-    else
-    {
-      QString name = mFields.at( linearlyInterpolatedDiagramRenderer->classificationAttribute() ).name();
-      if ( !attributeNames.contains( name ) )
-        attributeNames << name;
-    }
-  }
-
-  //and the ones needed for data defined diagram positions
-  if ( diagSettings->xPosColumn != -1 )
-    attributeNames << mFields.at( diagSettings->xPosColumn ).name();
-  if ( diagSettings->yPosColumn != -1 )
-    attributeNames << mFields.at( diagSettings->yPosColumn ).name();
 }

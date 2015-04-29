@@ -263,8 +263,6 @@ void QgsMapRendererJob::drawLabeling( const QgsMapSettings& settings, QgsRenderC
   // old labeling - to be removed at some point...
   drawOldLabeling( settings, renderContext );
 
-  drawNewLabeling( settings, renderContext, labelingEngine );
-
   QgsDebugMsg( QString( "Draw labeling took (seconds): %1" ).arg( t.elapsed() / 1000. ) );
 }
 
@@ -310,19 +308,6 @@ void QgsMapRendererJob::drawOldLabeling( const QgsMapSettings& settings, QgsRend
   }
 }
 
-
-void QgsMapRendererJob::drawNewLabeling( const QgsMapSettings& settings, QgsRenderContext& renderContext, QgsPalLabeling* labelingEngine )
-{
-  if ( labelingEngine && !renderContext.renderingStopped() )
-  {
-    // set correct extent
-    renderContext.setExtent( settings.visibleExtent() );
-    renderContext.setCoordinateTransform( NULL );
-
-    //    labelingEngine->drawLabeling( renderContext );
-    //    labelingEngine->exit();
-  }
-}
 
 void QgsMapRendererJob::updateLayerGeometryCaches()
 {

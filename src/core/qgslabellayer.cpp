@@ -76,7 +76,7 @@ QgsLabelLayer::QgsLabelLayer( QString layerName )
   : QgsMapLayer( LabelLayer, layerName ),
     mInit( false )
 {
-  mLegend = new QgsLabelLayerLegend(this); // will be own by QgsMapLayer
+  mLegend = new QgsLabelLayerLegend(this); // will be owned by QgsMapLayer
   setLegend( mLegend );
 
   mValid = true;
@@ -125,7 +125,6 @@ QgsLabelLayer::~QgsLabelLayer()
 
 bool QgsLabelLayer::addLayer( QgsVectorLayer* vl )
 {
-  std::cout << "addLayer with label layer " << vl->labelLayer().toUtf8().constData() << std::endl;
   if ( id() == vl->labelLayer() )
   {
     // make sure the list is always sorted and elements are unique
@@ -133,12 +132,13 @@ bool QgsLabelLayer::addLayer( QgsVectorLayer* vl )
     auto insertionIt = mLayers.end();
     for ( auto it = mLayers.begin(); it != mLayers.end(); ++it )
     {
-      if ( (*it)->id() == vl->id() )
+      int c = (*it)->id().compare( vl->id() );
+      if ( c == 0 )
       {
         // already there, abort
         return true;
       }
-      if ( (*it)->id() > vl->id() )
+      if ( c > 0 )
       {
         // we passed the point of insertion, insert it here
         insertionIt = it;
@@ -161,7 +161,6 @@ void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
   bool doUpdateLegend = false;
 
   QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(sender());
-  std::cout << id().toUtf8().constData() << " label laye changed from " << oldLabelLayer.toUtf8().constData() << " to " << vl->labelLayer().toUtf8().constData() << std::endl;
   // if the old label layer was this one
   // remove it from the list of layers
   if ( id() == oldLabelLayer )
@@ -195,7 +194,6 @@ void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
 {
   foreach( QgsMapLayer* ml, layers )
   {
-    std::cout << "onLayersAdded " << ml->id().toUtf8().constData() << std::endl;
     if ( ml == this )
     {
       // we must wait that the label layer is added to the registry to have its final ID
@@ -259,7 +257,6 @@ void QgsLabelLayer::updateLegend()
   // update it
   if ( legend() == mLegend )
   {
-    std::cout << "update legend" << std::endl;
     mLegend->emitItemsChanged();
   }
 }
@@ -348,7 +345,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   pal->setResults( mainPal->takeResults() );
 
   bool nothingToLabel = true;
-  std::cout << "begin draw" << std::endl;
   foreach( QgsVectorLayer* vl, mLayers )
   {
     // scale-based visibility test
@@ -377,8 +373,6 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
       continue;
     }
 
-    std::cout << vl->id().toUtf8().constData() << std::endl;
-
     QgsFeatureRendererV2* renderer = vl->rendererV2();
     bool filterRendering = renderer->capabilities() & QgsFeatureRendererV2::Filter;
 
@@ -392,9 +386,7 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
           attrNames << attr;
         }
       }
-      if (!renderer->prepareFilter( context, vl->pendingFields() )) {
-        std::cout << "PROBLEM preparing filter" << std::endl;
-      }
+      renderer->prepareFilter( context, vl->pendingFields() );
     }
 
     QgsFeature fet;

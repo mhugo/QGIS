@@ -204,6 +204,7 @@ class CORE_EXPORT QgsFeatureRendererV2
     virtual bool prepareFilter( const QgsRenderContext& context, const QgsFields& fields ) { Q_UNUSED( context ); Q_UNUSED( fields ); return true; }
 
     //! return whether the renderer will render a feature or not.
+    //! Must be called between startRender() and stopRender() calls or after prepareFilter()
     //! Default implementation uses symbolForFeature().
     virtual bool willRenderFeature( QgsFeature& feat ) { return symbolForFeature( feat ) != NULL; }
 

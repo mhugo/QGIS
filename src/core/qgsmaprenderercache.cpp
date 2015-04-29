@@ -96,7 +96,6 @@ QImage QgsMapRendererCache::cacheImage( QString layerId )
     bool miss = mVectorLayers.value(layerId) != layersToTest;
     mVectorLayers[layerId] = layersToTest;
 
-    std::cout << "Cache miss for " << layerId.toUtf8().constData() << " : " << miss << std::endl;
     if ( miss )
     {
       return QImage();

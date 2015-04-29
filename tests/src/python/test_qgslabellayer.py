@@ -231,7 +231,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         pr.addFeatures( [ fet ] )
         # Commit changes
         vl2.commitChanges()
-        
+
         enableLabels( vl2, "text" )
 
         ll = QgsLabelLayer( "labels" )
@@ -244,7 +244,7 @@ class TestPyQgsLabelLayer(unittest.TestCase):
 
         # render with all the layers in the main label layer
         ms.setLayers([vl2.id(), vl.id()])
-        
+
         chk = QgsMultiRenderChecker()
         chk.setControlName( 'expected_labellayers1' )
         chk.setMapSettings( ms )
