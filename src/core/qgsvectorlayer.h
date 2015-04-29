@@ -1483,7 +1483,6 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer
     bool simplifyDrawingCanbeApplied( const QgsRenderContext& renderContext, QgsVectorSimplifyMethod::SimplifyHint simplifyHint ) const;
 
     /** Returns the label layer's id this vector layer is attached to.
-     * Returns an empty string if it is not attached to any label layer (i.e. it is attached to the "main" label layer)
      */
     QString labelLayer() const;
 

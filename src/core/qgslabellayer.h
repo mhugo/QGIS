@@ -30,7 +30,7 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     /**
      * The main label layer id
      */
-    static const QString MainLabelId;
+    static const QString MainLayerId;
 
     QgsLabelLayer( QString layerName = "" );
     ~QgsLabelLayer();

@@ -3896,7 +3896,7 @@ bool QgsAttributeEditorRelation::init( QgsRelationManager* relationManager )
 
 QString QgsVectorLayer::labelLayer() const
 {
-  return mLabelLayer.isEmpty() ? QgsLabelLayer::MainLabelId : mLabelLayer;
+  return mLabelLayer.isEmpty() ? QgsLabelLayer::MainLayerId : mLabelLayer;
 }
 
 void QgsVectorLayer::setLabelLayer( QString labelLayerName )

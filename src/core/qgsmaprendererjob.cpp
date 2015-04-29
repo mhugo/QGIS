@@ -223,7 +223,7 @@ LayerRenderJobs QgsMapRendererJob::prepareJobs( QPainter* painter, QgsPalLabelin
       // test if we need to insert a label layer on top of other layers
       if ( !needMainLabelLayer &&
            ( (labelingEngine && labelingEngine->willUseLayer( vl )) || (vl->diagramRenderer() && vl->diagramLayerSettings()) ) &&
-           vl->labelLayer() == QgsLabelLayer::MainLabelId )
+           vl->labelLayer() == QgsLabelLayer::MainLayerId )
       {
         needMainLabelLayer = true;
       }

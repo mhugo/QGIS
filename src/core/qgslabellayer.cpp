@@ -85,7 +85,7 @@ QgsLabelLayer::QgsLabelLayer( QString layerName )
   connect( QgsMapLayerRegistry::instance(), SIGNAL( layerWillBeRemoved(QString) ), this, SLOT( onLayerRemoved(QString) ) );
 }
 
-const QString QgsLabelLayer::MainLabelId = "_mainlabels_";
+const QString QgsLabelLayer::MainLayerId = "_mainlabels_";
 
 void QgsLabelLayer::init()
 {
@@ -267,7 +267,7 @@ QgsLabelLayer* QgsLabelLayer::mainLabelLayer()
   static bool init = false;
   if (!init) {
     // this is a special layer, with a special id
-    mainLayer.mID = MainLabelId;
+    mainLayer.mID = MainLayerId;
     mainLayer.init();
     init = true;
   }
