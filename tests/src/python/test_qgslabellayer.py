@@ -15,6 +15,7 @@ import qgis
 from utilities import getQgisTestApp, unittest, renderMapToImage, unitTestDataPath, getTestFont
 
 from PyQt4.QtCore import *
+from PyQt4.QtGui import QPainter, QColor
 from qgis.core import *
 from qgis.core import qgsfunction, register_function
 
@@ -63,13 +64,14 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         self.ms.setFlag(QgsMapSettings.ForceVectorOutput, False)  # no caching?
         self.ms.setDestinationCrs(crs)
         self.ms.setMapUnits(crs.mapUnits())  # meters
-        self.ms.setFlags( self.ms.flags() | QgsMapSettings.DrawLabeling );
+        self.ms.setFlags( self.ms.flags() | QgsMapSettings.DrawLabeling | QgsMapSettings.UseAdvancedEffects );
+
+        self.TEST_DATA_DIR = unitTestDataPath()
 
     def tearDown( self ):
         QgsMapLayerRegistry.instance().removeAllMapLayers()
 
-    def testCache(self):
-        self.TEST_DATA_DIR = unitTestDataPath()
+    def xtestCache(self):
         fi = QFileInfo( os.path.join(self.TEST_DATA_DIR,"france_parts.shp") )
         vl = QgsVectorLayer( fi.filePath(), fi.completeBaseName(), "ogr" )
         assert vl.isValid()
@@ -99,6 +101,18 @@ class TestPyQgsLabelLayer(unittest.TestCase):
             renderToImage(ms, cache)
             assert gRendered == 0
 
+        def _testNoCache():
+            global gRendered
+            cache = QgsMapRendererCache()
+            # check that it is rendered
+            gRendered = 0
+            renderToImage(ms, cache)
+            assert gRendered == 8
+            # then use the cache
+            gRendered = 0
+            renderToImage(ms, cache)
+            assert gRendered == 8
+
         _testCache()
 
         # change the extent
@@ -124,8 +138,63 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         vl.triggerRepaint()
         _testCache()
 
+        # enable some labeling blend modes
+        # this should make the cache unusable
+        s = QgsPalLayerSettings()
+        s.readFromLayer( vl )
+
+        s2 = QgsPalLayerSettings(s)
+        s2.blendMode = QPainter.CompositionMode_Multiply
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.bufferDraw = True
+        s2.bufferBlendMode = QPainter.CompositionMode_Multiply
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.shapeDraw = True
+        s2.shapeBlendMode = QPainter.CompositionMode_Multiply
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.shadowDraw = True
+        s2.shadowBlendMode = QPainter.CompositionMode_Multiply
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        # data defined blend modes
+        s2 = QgsPalLayerSettings(s)
+        s2.setDataDefinedProperty(QgsPalLayerSettings.FontBlendMode, True, True, "1", "" )
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.bufferDraw = True
+        s2.setDataDefinedProperty(QgsPalLayerSettings.BufferBlendMode, True, True, "1", "" )
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.setDataDefinedProperty(QgsPalLayerSettings.ShapeDraw, True, True, "1", "" )
+        s2.setDataDefinedProperty(QgsPalLayerSettings.ShapeBlendMode, True, True, "1", "" )
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.setDataDefinedProperty(QgsPalLayerSettings.ShadowDraw, True, True, "1", "" )
+        s2.setDataDefinedProperty(QgsPalLayerSettings.ShadowBlendMode, True, True, "1", "" )
+        s2.writeToLayer( vl )
+        _testNoCache()
+
+        s2 = QgsPalLayerSettings(s)
+        s2.writeToLayer( vl )
+        _testCache()
+
     def testTwoLabelLayers(self):
-        self.TEST_DATA_DIR = unitTestDataPath()
         fi = QFileInfo( os.path.join(self.TEST_DATA_DIR,"france_parts.shp"))
         vl = QgsVectorLayer( fi.filePath(), fi.completeBaseName(), "ogr" )
         assert vl.isValid()
@@ -190,6 +259,51 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         chk.setControlName( 'expected_labellayers2' )
         chk.setMapSettings( ms )
         res = chk.runTest( "labellayers2" )
+        assert res
+
+        # render with the two layers in the same label layer
+        vl.setLabelLayer(ll.id())
+        ms.setLayers([ll.id(), vl2.id(), vl.id()])
+
+        chk = QgsMultiRenderChecker()
+        chk.setControlName( 'expected_labellayers1' )
+        chk.setMapSettings( ms )
+        res = chk.runTest( "labellayers1" )
+        assert res
+
+        ###############
+        # labeling blend modes
+        ###############
+        s = QgsPalLayerSettings()
+        s.readFromLayer( vl )
+
+        s2 = QgsPalLayerSettings(s)
+        s2.textColor = QColor("red")
+        s2.blendMode = QPainter.CompositionMode_SoftLight
+        s2.writeToLayer( vl )
+        chk = QgsMultiRenderChecker()
+        chk.setControlName( 'expected_labellayers3' )
+        chk.setMapSettings( ms )
+        res = chk.runTest( "labellayers3" )
+        assert res
+
+        # enable label layer blend mode
+        # if there are labeling blend modes, the layer blend mode
+        # is not used
+        ll.setBlendMode( QPainter.CompositionMode_Difference )
+        chk = QgsMultiRenderChecker()
+        chk.setControlName( 'expected_labellayers3' )
+        chk.setMapSettings( ms )
+        res = chk.runTest( "labellayers3" )
+        assert res
+
+        s2 = QgsPalLayerSettings(s)
+        s2.blendMode = QPainter.CompositionMode_SourceOver
+        s2.writeToLayer( vl )
+        chk = QgsMultiRenderChecker()
+        chk.setControlName( 'expected_labellayers4' )
+        chk.setMapSettings( ms )
+        res = chk.runTest( "labellayers4" )
         assert res
 
 if __name__ == '__main__':
