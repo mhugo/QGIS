@@ -86,16 +86,23 @@ QImage QgsMapRendererCache::cacheImage( QString layerId )
 {
   QMutexLocker lock( &mMutex );
 
+  // the cache test is a little bit more complex for label layers
+  // we need to take into account referenced vector layers
+  QgsLabelLayer* ll = 0;
   QgsMapLayer* ml = QgsMapLayerRegistry::instance()->mapLayer( layerId );
-  if ( ml && ml->type() == QgsMapLayer::LabelLayer )
+  if ( ml == 0 && layerId == QgsLabelLayer::MainLayerId )
   {
-    QgsLabelLayer* ll = qobject_cast<QgsLabelLayer*>(ml);
-    // the cache test is a little bit more complex for label layers
-    // we need to take into account referenced vector layers
+    ll = QgsLabelLayer::mainLabelLayer();
+  }
+  else if ( ml && ml->type() == QgsMapLayer::LabelLayer )
+  {
+    ll = qobject_cast<QgsLabelLayer*>(ml);
+  }
+  if ( ll )
+  {
     QList<QgsVectorLayer*> layersToTest = ll->vectorLayers();
     bool miss = mVectorLayers.value(layerId) != layersToTest;
     mVectorLayers[layerId] = layersToTest;
-
     if ( miss )
     {
       return QImage();
