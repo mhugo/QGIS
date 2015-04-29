@@ -128,13 +128,30 @@ bool QgsLabelLayer::addLayer( QgsVectorLayer* vl )
   std::cout << "addLayer with label layer " << vl->labelLayer().toUtf8().constData() << std::endl;
   if ( id() == vl->labelLayer() )
   {
-    mLayers << vl;
+    // make sure the list is always sorted and elements are unique
+    // (loop needed to optimize both operations)
+    auto insertionIt = mLayers.end();
+    for ( auto it = mLayers.begin(); it != mLayers.end(); ++it )
+    {
+      if ( (*it)->id() == vl->id() )
+      {
+        // already there, abort
+        return true;
+      }
+      if ( (*it)->id() > vl->id() )
+      {
+        // we passed the point of insertion, insert it here
+        insertionIt = it;
+        break;
+      }
+    }
+    mLayers.insert( insertionIt, vl );
     return true;
   }
   return false;
 }
 
-QSet<QgsVectorLayer*> QgsLabelLayer::vectorLayers() const
+QList<QgsVectorLayer*> QgsLabelLayer::vectorLayers() const
 {
   return mLayers;
 }
@@ -150,7 +167,7 @@ void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
   if ( id() == oldLabelLayer )
   {
     doUpdateLegend = true;
-    mLayers.remove( vl );
+    mLayers.removeOne( vl );
   }
 
   // if the new label layer is this one
@@ -226,7 +243,7 @@ void QgsLabelLayer::onLayerRemoved( QString layerid )
   QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(ml);
   if ( id() == vl->labelLayer() )
   {
-    mLayers.remove( vl );
+    mLayers.removeOne( vl );
     // update legend after the actual layer removal
     QTimer::singleShot( 0, this, SLOT(updateLegend()) );
   }

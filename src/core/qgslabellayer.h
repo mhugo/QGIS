@@ -52,7 +52,8 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     bool readXml( const QDomNode & layer_node ) override;
     bool writeXml( QDomNode & layer_node, QDomDocument & document ) override;
 
-    QSet<QgsVectorLayer*> vectorLayers() const;
+    // will always return the list of layers in the same order
+    QList<QgsVectorLayer*> vectorLayers() const;
 
     static QgsLabelLayer* mainLabelLayer();
 
@@ -72,7 +73,7 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     void prepareDiagrams( QgsVectorLayer* layer, QStringList& attributeNames, QgsLabelingEngineInterface* labelingEngine );
 
     // list of vector layers in this label layer
-    QSet<QgsVectorLayer*> mLayers;
+    QList<QgsVectorLayer*> mLayers;
 
     // add a layer to the list of layers, if possible
     // returns true if a layer has been added

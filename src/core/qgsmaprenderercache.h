@@ -72,7 +72,7 @@ class CORE_EXPORT QgsMapRendererCache : public QObject
     QgsRectangle mExtent;
     double mScale;
     QMap<QString, QImage> mCachedImages;
-    QMap<QString, QSet<QgsVectorLayer*> > mVectorLayers;
+    QMap<QString, QList<QgsVectorLayer*> > mVectorLayers;
 };
 
 
