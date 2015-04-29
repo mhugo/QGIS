@@ -12,11 +12,13 @@ __copyright__ = 'Copyright 2015, The QGIS Project'
 __revision__ = '$Format:%H$'
 
 import qgis
-from utilities import getQgisTestApp, unittest, renderMapToImage, unitTestDataPath
+from utilities import getQgisTestApp, unittest, renderMapToImage, unitTestDataPath, getTestFont
 
 from PyQt4.QtCore import *
 from qgis.core import *
 from qgis.core import qgsfunction, register_function
+
+import os
 
 QGISAPP, CANVAS, IFACE, PARENT = getQgisTestApp()
 
@@ -35,6 +37,7 @@ def enableLabels( vl, attribute, isExpr = False ):
     s.enabled = True
     s.fieldName = attribute
     s.isExpression = isExpr
+    s.textFont = getTestFont()
     s.writeToLayer( vl )
 
 def renderToImage( mapsettings, cache = None ):
@@ -48,40 +51,40 @@ def renderToImage( mapsettings, cache = None ):
 
 class TestPyQgsLabelLayer(unittest.TestCase):
 
+    def setUp(self):
+        # default mapsettings
+        self.ms = QgsMapSettings()
+        crs = QgsCoordinateReferenceSystem(2154)
+        self.ms.setDestinationCrs( crs )
+        self.ms.setOutputSize( QSize(420, 280) )
+        self.ms.setOutputDpi(72)
+        self.ms.setFlag(QgsMapSettings.Antialiasing, True)
+        self.ms.setFlag(QgsMapSettings.UseAdvancedEffects, False)
+        self.ms.setFlag(QgsMapSettings.ForceVectorOutput, False)  # no caching?
+        self.ms.setDestinationCrs(crs)
+        self.ms.setMapUnits(crs.mapUnits())  # meters
+        self.ms.setFlags( self.ms.flags() | QgsMapSettings.DrawLabeling );
+
+    def tearDown( self ):
+        QgsMapLayerRegistry.instance().removeAllMapLayers()
+
     def testCache(self):
         self.TEST_DATA_DIR = unitTestDataPath()
-        fi = QFileInfo( self.TEST_DATA_DIR + "/france_parts.shp")
+        fi = QFileInfo( os.path.join(self.TEST_DATA_DIR,"france_parts.shp") )
         vl = QgsVectorLayer( fi.filePath(), fi.completeBaseName(), "ogr" )
         assert vl.isValid()
         vl2 = QgsVectorLayer( fi.filePath(), fi.completeBaseName(), "ogr" )
         assert vl2.isValid()
 
-        r = QgsSingleSymbolRendererV2( QgsSymbolV2.defaultSymbol( QGis.Polygon ) )
-        vl.setRendererV2( r )
-        vl2.setRendererV2( r )
-
-        # enable labels
+        # enable labels with side effects
         enableLabels( vl, "NAME_1 || markRendering(0)", True )
         enableLabels( vl2, "NAME_1 || markRendering(0)", True )
 
-        QgsMapLayerRegistry.instance().addMapLayers([vl, vl2])
+        QgsMapLayerRegistry.instance().addMapLayers([vl, vl2], False)
 
         # map settings
-        ms = QgsMapSettings()
-        crs = QgsCoordinateReferenceSystem(2154)
-        ms.setDestinationCrs( crs )
-        ms.setOutputSize( QSize(420, 280) )
-        ms.setOutputDpi(72)
-        ms.setFlag(QgsMapSettings.Antialiasing, True)
-        ms.setFlag(QgsMapSettings.UseAdvancedEffects, False)
-        ms.setFlag(QgsMapSettings.ForceVectorOutput, False)  # no caching?
-        ms.setDestinationCrs(crs)
-        ms.setCrsTransformEnabled(True)
-        ms.setMapUnits(crs.mapUnits())  # meters
+        ms = self.ms
         ms.setExtent( ms.layerExtentToOutputExtent( vl, vl.extent() ) )
-
-        ms.setFlags( ms.flags() | QgsMapSettings.DrawLabeling );
-
         ms.setLayers([vl.id(), vl2.id()])
 
         def _testCache():
@@ -121,53 +124,73 @@ class TestPyQgsLabelLayer(unittest.TestCase):
         vl.triggerRepaint()
         _testCache()
 
-    def test1(self):
+    def testTwoLabelLayers(self):
         self.TEST_DATA_DIR = unitTestDataPath()
-        fi = QFileInfo( self.TEST_DATA_DIR + "/france_parts.shp")
+        fi = QFileInfo( os.path.join(self.TEST_DATA_DIR,"france_parts.shp"))
         vl = QgsVectorLayer( fi.filePath(), fi.completeBaseName(), "ogr" )
         assert vl.isValid()
 
-        r = QgsSingleSymbolRendererV2( QgsSymbolV2.defaultSymbol( QGis.Polygon ) )
-        vl.setRendererV2( r )
+        # simple polygon renderer
+        props = { "color": "0,127,0" }
+        fillSymbol = QgsFillSymbolV2.createSimple( props )
+        renderer = QgsSingleSymbolRendererV2( fillSymbol )
+        vl.setRendererV2( renderer )
 
         # enable labels
         enableLabels( vl, "NAME_1" )
 
         # second layer, different CRS
-        vl2 = QgsVectorLayer( "/home/hme/Bureau/test_vlayer/departements.shp", "regions", "ogr" )
+        vl2 = QgsVectorLayer( "Point?crs=epsg:2154", "point_layer", "memory" )
         assert vl2.isValid()
-        enableLabels( vl2, "NOM_DEPT" )
+        props = dict( name = 'circle', color = '255,0,0', size='4' )
+        renderer = QgsSingleSymbolRendererV2( QgsMarkerSymbolV2.createSimple( props ) )
+        vl2.setRendererV2( renderer )
 
-        ll = QgsLabelLayer()
+        pr = vl2.dataProvider()
+
+        # Enter editing mode
+        vl2.startEditing()
+        # add fields
+        pr.addAttributes( [ QgsField("text", QVariant.String) ] )
+        # add a feature
+        fet = QgsFeature()
+        c = QgsPoint(389873,6717319)
+        fet.setGeometry( QgsGeometry.fromPoint(c) )
+        fet.setFields( pr.fields(), True )
+        fet.setAttribute( "text", "Other label" )
+        fet.setFeatureId(1)
+        pr.addFeatures( [ fet ] )
+        # Commit changes
+        vl2.commitChanges()
+        
+        enableLabels( vl2, "text" )
+
+        ll = QgsLabelLayer( "labels" )
         QgsMapLayerRegistry.instance().addMapLayers([vl, vl2, ll])
 
         # map settings
-        ms = QgsMapSettings()
-        crs = QgsCoordinateReferenceSystem(2154)
-        ms.setDestinationCrs( crs )
-        ms.setOutputSize( QSize(420, 280) )
-        ms.setOutputDpi(72)
-        ms.setFlag(QgsMapSettings.Antialiasing, True)
-        ms.setFlag(QgsMapSettings.UseAdvancedEffects, False)
-        ms.setFlag(QgsMapSettings.ForceVectorOutput, False)  # no caching?
-        ms.setDestinationCrs(crs)
+        ms = self.ms
         ms.setCrsTransformEnabled(True)
-        ms.setMapUnits(crs.mapUnits())  # meters
         ms.setExtent( ms.layerExtentToOutputExtent( vl, vl.extent() ) )
 
-        ms.setFlags( ms.flags() | QgsMapSettings.DrawLabeling );
+        # render with all the layers in the main label layer
+        ms.setLayers([vl2.id(), vl.id()])
+        
+        chk = QgsMultiRenderChecker()
+        chk.setControlName( 'expected_labellayers1' )
+        chk.setMapSettings( ms )
+        res = chk.runTest( "labellayers1" )
+        assert res
 
-        if False:
-            ms.setLayers([ll.id(), ll2.id(), vl2.id(), vl.id() ])
-
-            img = renderMapToImage( ms )
-            img.save("t1.png")
-
+        # render with the point layer in its label layer
         vl2.setLabelLayer(ll.id())
-        ms.setLayers([ll.id(), vl2.id(), vl.id() ])
+        ms.setLayers([ll.id(), vl2.id(), vl.id()])
 
-        img = renderToImage( ms )
-        img.save("t2.png")
+        chk = QgsMultiRenderChecker()
+        chk.setControlName( 'expected_labellayers2' )
+        chk.setMapSettings( ms )
+        res = chk.runTest( "labellayers2" )
+        assert res
 
 if __name__ == '__main__':
     unittest.main()
