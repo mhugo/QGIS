@@ -21,6 +21,7 @@
 #include <qgsvectorlayer.h>
 #include <qgsvectordataprovider.h>
 #include <qgsmaplayerregistry.h>
+#include <qgslabellayer.h>
 
 #include "qgsdatadefinedbutton.h"
 #include "qgslabelengineconfigdialog.h"
@@ -167,9 +168,10 @@ QgsLabelingGui::QgsLabelingGui( QgsVectorLayer* layer, QgsMapCanvas* mapCanvas, 
   // populate label layers combo
   foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
   {
-    if ( ml->type() != QgsMapLayer::LabelLayer )
-      continue;
-    mLabelLayerCmbBox->addItem( ml->name(), ml->id() );
+    if ( ml->type() == QgsMapLayer::LabelLayer )
+    {
+      mLabelLayerCmbBox->addItem( ml->name(), ml->id() );
+    }
   }
 
   // color buttons
@@ -520,7 +522,7 @@ void QgsLabelingGui::init()
   enableDataDefinedAlignment( mCoordXDDBtn->isActive() && mCoordYDDBtn->isActive() );
 
   // set label layer
-  if ( !mLayer->labelLayer().isEmpty() )
+  if ( mLayer->labelLayer() != QgsLabelLayer::MainLayerId )
   {
     mUseLabelLayerChkBox->setChecked( true );
 
