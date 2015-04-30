@@ -27,6 +27,7 @@
 
 QgsLabelLayerLegend::QgsLabelLayerLegend( QgsLabelLayer* layer ) : QgsMapLayerLegend(), mLayer(layer)
 {
+  connect( mLayer, SIGNAL( layersChanged() ), this, SIGNAL( itemsChanged() ) );
 }
 
 QList<QgsLayerTreeModelLegendNode*> QgsLabelLayerLegend::createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer )
@@ -65,11 +66,6 @@ QList<QgsLayerTreeModelLegendNode*> QgsLabelLayerLegend::createLayerTreeModelLeg
 
   }
   return nodes;
-}
-
-void QgsLabelLayerLegend::emitItemsChanged()
-{
-  emit itemsChanged();
 }
 
 QgsLabelLayer::QgsLabelLayer( QString layerName )
@@ -177,7 +173,7 @@ void QgsLabelLayer::onLabelLayerChanged( const QString& oldLabelLayer )
   }
   if ( doUpdateLegend )
   {
-    updateLegend();
+    emit layersChanged();
   }
 }
 
@@ -186,12 +182,13 @@ void QgsLabelLayer::onLayerRenamed()
   QgsVectorLayer* vl = static_cast<QgsVectorLayer*>( sender() );
   if ( id() == vl->labelLayer() )
   {
-    updateLegend();
+    emit layersChanged();
   }
 }
 
 void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
 {
+  bool doEmit = false;
   foreach( QgsMapLayer* ml, layers )
   {
     if ( ml == this )
@@ -216,12 +213,16 @@ void QgsLabelLayer::onLayersAdded( QList<QgsMapLayer*> layers )
     QgsVectorLayer* vl = qobject_cast<QgsVectorLayer*>(ml);
     if ( addLayer( vl ) )
     {
-      updateLegend();
+      doEmit = true;
     }
 
     // register to label layer change signal
     connect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
     connect( vl, SIGNAL( layerNameChanged() ), this, SLOT( onLayerRenamed() ) );
+  }
+  if ( doEmit )
+  {
+    emit layersChanged();
   }
 }
 
@@ -242,23 +243,13 @@ void QgsLabelLayer::onLayerRemoved( QString layerid )
   if ( id() == vl->labelLayer() )
   {
     mLayers.removeOne( vl );
-    // update legend after the actual layer removal
-    QTimer::singleShot( 0, this, SLOT(updateLegend()) );
+    // update after the actual layer removal
+    QTimer::singleShot( 0, this, SIGNAL(layersChanged()) );
   }
 
   // unregister label change signal
   disconnect( vl, SIGNAL( labelLayerChanged(const QString&) ), this, SLOT( onLabelLayerChanged(const QString&) ) );
   disconnect( vl, SIGNAL( layerNameChanged() ), this, SLOT( onLayerRenamed() ) );
-}
-
-void QgsLabelLayer::updateLegend()
-{
-  // if the legend is mine
-  // update it
-  if ( legend() == mLegend )
-  {
-    mLegend->emitItemsChanged();
-  }
 }
 
 QgsLabelLayer* QgsLabelLayer::mainLabelLayer()

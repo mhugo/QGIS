@@ -73,7 +73,9 @@ class CORE_EXPORT QgsLabelLayer : public QgsMapLayer
     void onLabelLayerChanged( const QString& oldLabelLayer );
     void onLayerRenamed();
 
-    void updateLegend();
+ signals:
+    /** Emitted when the list of vector layers changes */
+    void layersChanged();
 
  private:
     bool mInit;
@@ -112,12 +114,7 @@ public:
   virtual QList<QgsLayerTreeModelLegendNode*> createLayerTreeModelLegendNodes( QgsLayerTreeLayer* nodeLayer ) override;
 
 private:
-  void emitItemsChanged();
-
   QgsLabelLayer* mLayer;
-
-  // allow it to call emitItemsChanged()
-  friend class QgsLabelLayer;
 };
 
 #endif // QGSLABELLAYER_H
