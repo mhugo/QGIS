@@ -1487,7 +1487,7 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer
     QString labelLayer() const;
 
     /** Sets the label layer's id this vector layer is attached to. Set to an empty string to detach it */
-    void setLabelLayer( QString labelLayerName );
+    void setLabelLayer( QString labelLayerId );
 
   public slots:
     /**

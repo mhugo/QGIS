@@ -3899,9 +3899,9 @@ QString QgsVectorLayer::labelLayer() const
   return mLabelLayer.isEmpty() ? QgsLabelLayer::MainLayerId : mLabelLayer;
 }
 
-void QgsVectorLayer::setLabelLayer( QString labelLayerName )
+void QgsVectorLayer::setLabelLayer( QString labelLayerId )
 {
   QString old = labelLayer();
-  mLabelLayer = labelLayerName;
+  mLabelLayer = labelLayerId;
   emit labelLayerChanged( old );
 }
