@@ -105,6 +105,13 @@ void QgsLabelLayer::init()
 
 QgsLabelLayer::~QgsLabelLayer()
 {
+  // make the vector layers point to the main label layer
+  foreach( QgsVectorLayer* vl, mLayers )
+  {
+    vl->setLabelLayer("");
+  }
+
+  // disconnect signals
   foreach( QgsMapLayer* ml, QgsMapLayerRegistry::instance()->mapLayers() )
   {
     if ( ml->type() != QgsMapLayer::VectorLayer )
