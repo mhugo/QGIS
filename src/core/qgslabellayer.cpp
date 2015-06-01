@@ -357,7 +357,10 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
     if ( pal->willUseLayer( vl ) )
     {
       hasLabels = true;
-      pal->prepareLayer( vl, attrNames, context );
+      if ( !pal->prepareLayer( vl, attrNames, context ) )
+      {
+        continue;
+      }
     }
 
     if ( vl->diagramRenderer() && vl->diagramLayerSettings() )
@@ -384,7 +387,10 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
           attrNames << attr;
         }
       }
-      renderer->prepareFilter( context, vl->pendingFields() );
+      if ( !renderer->prepareFilter( context, vl->pendingFields() ) )
+      {
+        continue;
+      }
     }
 
     QgsFeature fet;
