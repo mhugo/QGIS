@@ -56,6 +56,7 @@ QgsRenderContext QgsRenderContext::fromMapSettings( const QgsMapSettings& mapSet
   ctx.setRasterScaleFactor( 1.0 );
   ctx.setScaleFactor( mapSettings.outputDpi() / 25.4 ); // = pixels per mm
   ctx.setRendererScale( mapSettings.scale() );
+  ctx.setLayerSet( mapSettings.layers() );
 
   //this flag is only for stopping during the current rendering progress,
   //so must be false at every new render operation

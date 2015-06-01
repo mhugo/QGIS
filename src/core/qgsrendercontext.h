@@ -86,6 +86,11 @@ class CORE_EXPORT QgsRenderContext
     */
     bool showSelection() const { return mShowSelection; }
 
+    /**Returns the list of layer IDs for map rendering,
+       for renderers that need to know what other layers are rendered (label layers mainly)
+    */
+    QStringList layerSet() const { return mLayers; }
+
     //setters
 
     /**Sets coordinate transformation. QgsRenderContext does not take ownership*/
@@ -118,6 +123,10 @@ class CORE_EXPORT QgsRenderContext
     const QgsVectorSimplifyMethod& vectorSimplifyMethod() const { return mVectorSimplifyMethod; }
     void setVectorSimplifyMethod( const QgsVectorSimplifyMethod& simplifyMethod ) { mVectorSimplifyMethod = simplifyMethod; }
 
+    /**Sets the list of layer IDs to use for rendering,
+       for renderers that need to know what other layers are rendered (label layers mainly)
+    */
+    void setLayerSet( const QStringList& layers ) { mLayers = layers; }
   private:
 
     /**Painter for rendering operations*/
@@ -165,6 +174,9 @@ class CORE_EXPORT QgsRenderContext
 
     /**Simplification object which holds the information about how to simplify the features for fast rendering */
     QgsVectorSimplifyMethod mVectorSimplifyMethod;
+
+    /**List of layer IDs currently rendered*/
+    QStringList mLayers;
 };
 
 #endif

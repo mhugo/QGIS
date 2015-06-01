@@ -343,8 +343,14 @@ bool QgsLabelLayer::draw( QgsRenderContext& context )
   pal->setResults( mainPal->takeResults() );
 
   bool nothingToLabel = true;
+  QStringList layerSet = context.layerSet();
   foreach( QgsVectorLayer* vl, mLayers )
   {
+    if ( this == QgsLabelLayer::mainLabelLayer() && !layerSet.contains(vl->id()) )
+    {
+      // for the main label layer, we only consider visible layers
+      continue;
+    }
     // scale-based visibility test
     if ( vl->hasScaleBasedVisibility() && ( context.scaleFactor() < vl->minimumScale() || context.scaleFactor() > vl->maximumScale() ) )
     {
