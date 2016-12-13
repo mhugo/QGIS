@@ -468,6 +468,19 @@ QPair<QByteArray, QByteArray> QgsServer::handleRequest( const QString& queryStri
     theRequestHandler->setHeader( QStringLiteral( "Content-Disposition" ), "attachment; filename=\"" + outputFileName + "\"" );
   }
 
+  // load the project if needed
+  auto projectIt = mProjectStore.find( configFilePath );
+  if ( projectIt == mProjectStore.constEnd() )
+  {
+    // load the project
+    QgsProject* project = new QgsProject();
+    project->setFileName( configFilePath );
+    if ( project->read() )
+    {
+      projectIt = mProjectStore.insert( configFilePath, project );
+    }
+  }
+
   // Enter core services main switch
   if ( !theRequestHandler->exceptionRaised() )
   {
@@ -525,6 +538,9 @@ QPair<QByteArray, QByteArray> QgsServer::handleRequest( const QString& queryStri
     }
     else if ( serviceString == QLatin1String( "WMS" ) )
     {
+      QgsMessageLog::logMessage( QStringLiteral( "WMS File path: %1" ).arg( configFilePath ), QStringLiteral( "Server" ), QgsMessageLog::INFO );
+
+
       QgsWmsConfigParser* p = QgsConfigCache::instance()->wmsConfiguration(
                                 configFilePath
 #ifdef HAVE_SERVER_PYTHON_PLUGINS
