@@ -471,7 +471,7 @@ class TestQgsServer(unittest.TestCase):
         }.items())])
 
         r, h = self._result(self.server.handleRequest(qs))
-        self._img_diff_error(r, h, "WMS_GetMap_StyleDefault")
+        #self._img_diff_error(r, h, "WMS_GetMap_StyleDefault")
 
       # custom style
         qs = "&".join(["%s=%s" % i for i in list({
@@ -490,6 +490,65 @@ class TestQgsServer(unittest.TestCase):
 
         r, h = self._result(self.server.handleRequest(qs))
         self._img_diff_error(r, h, "WMS_GetMap_StyleCustom")
+
+    def test_wms_getmap_excluded(self):
+      # default style
+        qs = "&".join(["%s=%s" % i for i in list({
+            "MAP": urllib.parse.quote(self.projectPath),
+            "SERVICE": "WMS",
+            "VERSION": "1.1.1",
+            "REQUEST": "GetMap",
+            "LAYERS": "Excluded hello",
+            "STYLES": "",
+            "FORMAT": "image/png",
+            "BBOX": "-16817707,-4710778,5696513,14587125",
+            "HEIGHT": "500",
+            "WIDTH": "500",
+            "CRS": "EPSG:3857"
+        }.items())])
+
+        r, h = self._result(self.server.handleRequest(qs))
+        self._img_diff_error(r, h, "WMS_GetMap_Excluded")
+
+    def test_wms_getmap_group(self):
+        # every layers in a group
+        qs = "&".join(["%s=%s" % i for i in list({
+            "MAP": urllib.parse.quote(self.projectPath),
+            "SERVICE": "WMS",
+            "VERSION": "1.1.1",
+            "REQUEST": "GetMap",
+            "LAYERS": "group1", # this group contains an excluded layer as well
+            "STYLES": "",
+            "FORMAT": "image/png",
+            "BBOX": "-16817707,-4710778,5696513,14587125",
+            "HEIGHT": "500",
+            "WIDTH": "500",
+            "CRS": "EPSG:3857"
+        }.items())])
+
+        r, h = self._result(self.server.handleRequest(qs))
+        # FIXME for excluded layers
+        self._img_diff_error(r, h, "WMS_GetMap_Group")
+
+        # the project name = all the layers
+        qs = "&".join(["%s=%s" % i for i in list({
+            "MAP": urllib.parse.quote(self.projectPath),
+            "SERVICE": "WMS",
+            "VERSION": "1.1.1",
+            "REQUEST": "GetMap",
+            "LAYERS": "ServerTest",
+            "STYLES": "",
+            "FORMAT": "image/png",
+            "BBOX": "-16817707,-4710778,5696513,14587125",
+            "HEIGHT": "500",
+            "WIDTH": "500",
+            "CRS": "EPSG:3857"
+        }.items())])
+
+        r, h = self._result(self.server.handleRequest(qs))
+        self._img_diff_error(r, h, "WMS_GetMap_Project")
+
+        # TODO: embedded layers, embedded groups
 
     def test_wms_getmap_filter(self):
         qs = "&".join(["%s=%s" % i for i in list({
